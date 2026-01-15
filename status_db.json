@@ -1,0 +1,304 @@
+{
+  "google_gemini": {
+    "gemini-2.5-pro": {
+      "status": "error",
+      "lastUpdated": 1768495507503,
+      "error": "Rate limited (cached)"
+    },
+    "gemini-2.5-flash": {
+      "status": "error",
+      "lastUpdated": 1768495507782,
+      "error": "Rate limited (cached)"
+    },
+    "gemini-2.5-flash-lite": {
+      "status": "error",
+      "lastUpdated": 1768495762770,
+      "error": "Rate limited (cached)"
+    },
+    "gemini-2.0-flash-lite": {
+      "status": "error",
+      "lastUpdated": 1768495508309,
+      "error": "Rate limited (cached)"
+    },
+    "gemini-2.0-flash": {
+      "status": "error",
+      "lastUpdated": 1768495508475,
+      "error": "Rate limited (cached)"
+    }
+  },
+  "groq": {
+    "llama-3.3-70b-versatile": {
+      "status": "error",
+      "lastUpdated": 1768495897375,
+      "error": "Rate limited (cached)"
+    },
+    "llama-3.1-8b-instant": {
+      "status": "error",
+      "lastUpdated": 1768495905355,
+      "error": "Rate limited (cached)"
+    },
+    "openai/gpt-oss-120b": {
+      "status": "error",
+      "lastUpdated": 1768495915225,
+      "error": "Rate limited (cached)"
+    },
+    "meta-llama/llama-guard-4-12b": {
+      "status": "error",
+      "lastUpdated": 1768495517756,
+      "error": "Rate limited (cached)"
+    },
+    "openai/gpt-oss-20b": {
+      "status": "error",
+      "lastUpdated": 1768495550200,
+      "error": "Rate limited (cached)"
+    }
+  },
+  "cerebras": {
+    "llama-3.3-70b": {
+      "status": "online",
+      "lastUpdated": 1768499882578,
+      "error": null
+    },
+    "llama3.1-8b": {
+      "status": "online",
+      "lastUpdated": 1768495511761,
+      "error": null
+    }
+  },
+  "cloudflare": {
+    "@cf/qwen/qwen2.5-coder-32b-instruct": {
+      "status": "online",
+      "lastUpdated": 1768495512496,
+      "error": null
+    },
+    "@cf/qwen/qwq-32b": {
+      "status": "online",
+      "lastUpdated": 1768495516067,
+      "error": null
+    },
+    "@cf/meta/llama-3.1-70b-instruct-fp8-fast": {
+      "status": "online",
+      "lastUpdated": 1768495516903,
+      "error": null
+    },
+    "@cf/mistralai/mistral-small-3.1-24b-instruct": {
+      "status": "online",
+      "lastUpdated": 1768495517394,
+      "error": null
+    },
+    "@cf/aisingapore/gemma-sea-lion-v4-27b-it": {
+      "status": "online",
+      "lastUpdated": 1768495517844,
+      "error": null
+    },
+    "@cf/google/gemma-3-12b-it": {
+      "status": "online",
+      "lastUpdated": 1768495518964,
+      "error": null
+    },
+    "@cf/qwen/qwen3-30b-a3b-fp8": {
+      "status": "online",
+      "lastUpdated": 1768495520002,
+      "error": null
+    },
+    "@cf/meta/llama-3.1-8b-instruct-fp8-fast": {
+      "status": "online",
+      "lastUpdated": 1768495520317,
+      "error": null
+    },
+    "@cf/meta/llama-3.1-8b-instruct-fp8": {
+      "status": "online",
+      "lastUpdated": 1768495521378,
+      "error": null
+    },
+    "@cf/meta/llama-3.1-8b-instruct-awq": {
+      "status": "online",
+      "lastUpdated": 1768495521983,
+      "error": null
+    }
+  },
+  "github": {
+    "gpt-4o-mini": {
+      "status": "online",
+      "lastUpdated": 1768495523017,
+      "error": null
+    },
+    "Phi-4": {
+      "status": "online",
+      "lastUpdated": 1768495524165,
+      "error": null
+    },
+    "Llama-3.3-70B-Instruct": {
+      "status": "online",
+      "lastUpdated": 1768495524449,
+      "error": null
+    }
+  },
+  "cohere": {
+    "command-r-08-2024": {
+      "status": "online",
+      "lastUpdated": 1768495524947,
+      "error": null
+    },
+    "command-r-plus-08-2024": {
+      "status": "online",
+      "lastUpdated": 1768495525872,
+      "error": null
+    }
+  },
+  "huggingface": {
+    "meta-llama/Meta-Llama-3-8B-Instruct": {
+      "status": "online",
+      "lastUpdated": 1768495526875,
+      "error": null
+    }
+  },
+  "nvidia": {
+    "meta/llama-3.1-405b-instruct": {
+      "status": "online",
+      "lastUpdated": 1768495527502,
+      "error": null
+    }
+  },
+  "openrouter": {
+    "mistralai/mistral-7b-instruct:free": {
+      "status": "online",
+      "lastUpdated": 1768495528986,
+      "error": null
+    },
+    "x-ai/grok-4.1-fast:free": {
+      "status": "error",
+      "lastUpdated": 1768495529041,
+      "error": "Request failed with status code 404"
+    },
+    "google/gemini-2.0-flash-exp:free": {
+      "status": "error",
+      "lastUpdated": 1768495530631,
+      "error": "Rate limited (cached)"
+    },
+    "kwaipilot/kat-coder-pro:free": {
+      "status": "error",
+      "lastUpdated": 1768495530671,
+      "error": "Request failed with status code 404"
+    },
+    "qwen/qwen3-coder:free": {
+      "status": "error",
+      "lastUpdated": 1764529805969,
+      "error": "Request failed with status code 500"
+    },
+    "openrouter/bert-nebulon-alpha": {
+      "status": "error",
+      "lastUpdated": 1768495530710,
+      "error": "Request failed with status code 404"
+    }
+  },
+  "nlpcloud": {
+    "chatdolphin": {
+      "status": "error",
+      "lastUpdated": 1768495530871,
+      "error": "Rate limited (cached)"
+    },
+    "finetuned-llama-3-70b": {
+      "status": "error",
+      "lastUpdated": 1768495531030,
+      "error": "Rate limited (cached)"
+    }
+  },
+  "apifreellm": {
+    "default": {
+      "status": "error",
+      "lastUpdated": 1768495531194,
+      "error": "Request failed with status code 404"
+    }
+  },
+  "novita": {
+    "qwen/qwen3-8b-fp8": {
+      "status": "online",
+      "lastUpdated": 1768495534161,
+      "error": null
+    },
+    "mistralai/mistral-nemo": {
+      "status": "online",
+      "lastUpdated": 1768495535191,
+      "error": null
+    },
+    "openai/gpt-oss-20b": {
+      "status": "online",
+      "lastUpdated": 1768495536732,
+      "error": null
+    },
+    "meta-llama/llama-3.1-8b-instruct": {
+      "status": "online",
+      "lastUpdated": 1768495537761,
+      "error": null
+    },
+    "meta-llama/llama-3.2-3b-instruct": {
+      "status": "online",
+      "lastUpdated": 1768495538451,
+      "error": null
+    },
+    "qwen/qwen3-4b-fp8": {
+      "status": "online",
+      "lastUpdated": 1768495541885,
+      "error": null
+    }
+  },
+  "ai21labs": {
+    "jamba-large": {
+      "status": "online",
+      "lastUpdated": 1768495542901,
+      "error": null
+    },
+    "jamba-mini": {
+      "status": "online",
+      "lastUpdated": 1768495543642,
+      "error": null
+    }
+  },
+  "mistral_ai": {
+    "mistral-small-latest": {
+      "status": "online",
+      "lastUpdated": 1768495543882,
+      "error": null
+    },
+    "open-mistral-nemo": {
+      "status": "online",
+      "lastUpdated": 1768495544216,
+      "error": null
+    }
+  },
+  "ollama": {
+    "mistral:7b": {
+      "status": "online",
+      "lastUpdated": 1765109875897,
+      "error": null
+    },
+    "llama3:8b": {
+      "status": "online",
+      "lastUpdated": 1765108488049,
+      "error": null
+    },
+    "deepseek-coder:6.7b": {
+      "status": "online",
+      "lastUpdated": 1764618595264,
+      "error": null
+    }
+  },
+  "anthropic": {
+    "claude-3-5-sonnet-20241022": {
+      "status": "error",
+      "lastUpdated": 1768150082048,
+      "error": "Request failed with status code 400"
+    },
+    "claude-3-5-sonnet-20240620": {
+      "status": "error",
+      "lastUpdated": 1768150082270,
+      "error": "Request failed with status code 400"
+    },
+    "claude-3-haiku-20240307": {
+      "status": "error",
+      "lastUpdated": 1768150082488,
+      "error": "Request failed with status code 400"
+    }
+  }
+}

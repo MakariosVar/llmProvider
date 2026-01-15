@@ -1,0 +1,218 @@
+import express from 'express';
+import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import config from './src/config.js';
+import orchestrator from './src/orchestrator.js';
+import healthChecker from './src/healthChecker.js';
+import providerManager from './src/providerManager.js';
+
+const app = express();
+const httpServer = createServer(app);
+
+// CORS configuration - currently permissive for development
+// TODO: In production, restrict to specific allowed origins
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+app.use(cors());
+app.use(express.json({ limit: '1mb' })); // Add request size limit
+
+// Helper to log to console and socket
+const log = (msg) => {
+    console.log(msg);
+    io.emit('log', msg);
+};
+
+// Middleware for parameter validation
+const validateGenerateParams = (req, res, next) => {
+    const { prompt } = req.body;
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+        return res.status(400).json({ error: 'Missing or invalid "prompt" parameter' });
+    }
+    next();
+};
+
+// API Endpoints
+app.post('/api/ai', validateGenerateParams, async (req, res) => {
+    try {
+        const result = await orchestrator.generate(req.body);
+        res.json(result);
+        log(`Request served by ${result.provider}`);
+        io.emit('status_update', providerManager.getAllProviders());
+    } catch (error) {
+        log(`Request failed: ${error.message}`);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Config endpoint for frontend
+app.get('/api/config', (req, res) => {
+    res.json({
+        agentUrl: config.agentUrl
+    });
+});
+
+// Streaming endpoint (SSE-like over POST chunked response)
+app.post('/api/ai/stream', validateGenerateParams, async (req, res) => {
+    try {
+        const params = req.body || {};
+
+        // Set SSE headers
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive'
+        });
+        res.flushHeaders && res.flushHeaders();
+
+        const sendEvent = (event, data) => {
+            try {
+                res.write(`event: ${event}\n`);
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
+            } catch (e) {
+                console.error('Failed to send SSE event', e.message);
+            }
+        };
+
+        // Use orchestrator.stream which will call onData with {type, token/content}
+        await orchestrator.stream(params, (payload) => {
+            if (!payload || !payload.type) return;
+            if (payload.type === 'start') {
+                sendEvent('start', { provider: payload.provider, model: payload.model });
+            } else if (payload.type === 'data') {
+                sendEvent('data', { token: payload.token });
+            } else if (payload.type === 'end') {
+                sendEvent('end', { content: payload.content });
+            }
+        });
+
+        // Close stream
+        res.write('event: done\n');
+        res.write('data: {}\n\n');
+        res.end();
+
+        io.emit('status_update', providerManager.getAllProviders());
+    } catch (error) {
+        console.error('Streaming request failed:', error.message || error);
+        try {
+            res.write('event: error\n');
+            res.write(`data: ${JSON.stringify({ error: error.message || String(error) })}\n\n`);
+            res.end();
+        } catch (e) { /* ignore */ }
+    }
+});
+
+app.get('/api/status', (req, res) => {
+    res.json({
+        providers: providerManager.getAllProviders(),
+        usage: providerManager.usage
+    });
+});
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+app.get('/llms', (req, res) => {
+    res.sendFile('src/statusPage.html', { root: '.' });
+});
+
+app.post('/api/status/check', async (req, res) => {
+    log('Manual status check triggered via API');
+    try {
+        await healthChecker.checkAll(true);
+        res.json({ status: 'completed', message: 'Health check completed successfully' });
+    } catch (error) {
+        log(`Manual check failed: ${error.message}`);
+        res.status(500).json({
+            status: 'failed',
+            error: error.message
+        });
+    }
+});
+
+// Socket.io connection
+io.on('connection', (socket) => {
+    log(`Client connected: ${socket.id}`);
+    socket.emit('status_update', providerManager.getAllProviders());
+
+    socket.on('chat_message', async (data) => {
+        // Validate input
+        if (!data || typeof data !== 'object') {
+            socket.emit('chat_error', { message: 'Invalid data format' });
+            return;
+        }
+
+        if (!data.prompt || typeof data.prompt !== 'string') {
+            socket.emit('chat_error', { message: 'Prompt is required and must be a string' });
+            return;
+        }
+
+        // Sanitize and limit prompt length
+        const prompt = data.prompt.trim().substring(0, 10000);
+        const systemPrompt = data.systemPrompt && typeof data.systemPrompt === 'string'
+            ? data.systemPrompt.trim().substring(0, 5000)
+            : undefined;
+        const providerId = data.providerId && typeof data.providerId === 'string'
+            ? data.providerId.trim().substring(0, 50)
+            : undefined;
+
+        try {
+            log(`Chat request from TUI: ${prompt.substring(0, 50)}...`);
+            // If specific provider requested
+            let result;
+            if (providerId) {
+                const provider = providerManager.getProvider(providerId);
+                if (!provider) {
+                    socket.emit('chat_error', { message: 'Provider not found' });
+                    return;
+                }
+                const content = await orchestrator.callProvider(provider, prompt, systemPrompt, 0.7);
+                result = { provider: provider.name, content };
+                providerManager.incrementUsage(provider.id);
+            } else {
+                result = await orchestrator.generate({
+                    prompt,
+                    systemPrompt
+                });
+            }
+            socket.emit('chat_response', result);
+            io.emit('status_update', providerManager.getAllProviders());
+        } catch (error) {
+            log(`Chat error: ${error.message}`);
+            socket.emit('chat_error', { message: error.message });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        log(`Client disconnected: ${socket.id}`);
+    });
+});
+
+// Start Server
+const PORT = config.port;
+httpServer.listen(PORT, async () => {
+    log(`Server started on port ${PORT}`);
+
+    // Start Health Checker
+    healthChecker.start();
+
+    // Periodically emit status
+    setInterval(() => {
+        io.emit('status_update', providerManager.getAllProviders());
+    }, 5000);
+});
+
+// Handle errors
+process.on('uncaughtException', (err) => {
+    log(`Uncaught Exception: ${err.message}`);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    log(`Unhandled Rejection: ${reason}`);
+});
