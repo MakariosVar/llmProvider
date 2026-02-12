@@ -8,7 +8,13 @@ export default {
         google_gemini: {
             name: 'Google Gemini',
             key: process.env.GEMINI_API_KEY,
-            models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.0-flash'],
+            models: [
+                'gemini-3-flash-preview',
+                'gemini-3-pro-preview',
+                'gemini-2.5-pro',
+                'gemini-2.5-flash',
+                'gemini-2.5-flash-lite',
+            ],
             rpm: 60,  // Updated for 2.5 Flash
             daily_limit: 2000,  // Conservative estimate
             priority: 1,
@@ -24,6 +30,18 @@ export default {
             priority: 2,
             heavy_usage: 90,
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
+        },
+        openrouter: {
+            name: 'OpenRouter',
+            key: process.env.OPENROUTER_API_KEY,
+            models: [
+                'openrouter/auto',
+            ],
+            rpm: 20,
+            daily_limit: 200,
+            priority: 9,
+            heavy_usage: 70,
+            endpoint: 'https://openrouter.ai/api/v1/chat/completions'
         },
         cerebras: {
             name: 'Cerebras',
@@ -102,22 +120,6 @@ export default {
             priority: 8,
             heavy_usage: 50,
             endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions'
-        },
-        openrouter: {
-            name: 'OpenRouter',
-            key: process.env.OPENROUTER_API_KEY,
-            models: [
-                'mistralai/mistral-7b-instruct:free',
-                'x-ai/grok-4.1-fast:free',
-                'google/gemini-2.0-flash-exp:free',
-                'kwaipilot/kat-coder-pro:free',
-                'openrouter/bert-nebulon-alpha'
-            ],
-            rpm: 20,
-            daily_limit: 200,
-            priority: 9,
-            heavy_usage: 70,
-            endpoint: 'https://openrouter.ai/api/v1/chat/completions'
         },
         nlpcloud: {
             name: 'NLP Cloud',
