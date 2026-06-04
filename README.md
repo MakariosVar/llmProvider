@@ -4,8 +4,9 @@ A robust Node.js server that orchestrates multiple free and paid LLM providers, 
 
 ## Features
 
-- **Unified API**: Single point of entry for multiple LLM providers.
+- **Unified API**: Single point of entry for multiple LLM and Image providers.
 - **Smart Orchestration**: Automatically routes requests to available providers based on priority, health, and heavy-usage capabilities.
+- **Image Generation Support**: Dedicated endpoints for generating images using various free providers.
 - **High Availability**:
   - **Failover**: Automatically switches to the next available provider if one fails.
   - **Circuit Breaker**: Detects failing providers and temporarily stops sending requests to them.
@@ -16,6 +17,7 @@ A robust Node.js server that orchestrates multiple free and paid LLM providers, 
 
 ## Supported Providers
 
+### Text Generation
 - Google Gemini
 - Groq
 - Anthropic (Claude)
@@ -32,11 +34,16 @@ A robust Node.js server that orchestrates multiple free and paid LLM providers, 
 - Mistral AI
 - Ollama (Local)
 
+### Image Generation
+- Pollinations.ai (No API key required)
+- Cloudflare Workers AI (SDXL Lightning, Flux Schnell)
+- HuggingFace (via Stable Diffusion models)
+
 ## internal Architecture
 
-- **Server (`server.js`)**: Express-based API server with Socket.io for real-time updates.
-- **Orchestrator (`src/orchestrator.js`)**: Handles request routing, fallback logic, and provider execution.
-- **Provider Manager (`src/providerManager.js`)**: Manages the state, health, and usage quotas of each provider.
+- **Server (`server.js`)**: Express-based API server with Socket.io for real-time updates. Now supports both Text and Image generation routes.
+- **Orchestrator (`src/orchestrator.js`)**: Handles request routing, fallback logic, and provider execution for both LLMs and Image models.
+- **Provider Manager (`src/providerManager.js`)**: Manages the state, health, and usage quotas of each provider, now categorized by type.
 - **TUI (`src/chatTui.js`)**: A `blessed`-based terminal interface for chatting with the models.
 
 ## Prerequisites
@@ -103,6 +110,24 @@ Generate text (non-streaming).
 }
 ```
 
+#### POST `/api/ai/image`
+Generate an image.
+
+**Body:**
+```json
+{
+  "prompt": "A futuristic city at sunset",
+  "model": "flux"
+}
+```
+
+#### GET `/image?prompt=...`
+Quickly generate and view an image in your browser.
+
+**Query Params:**
+- `prompt`: The image description (required)
+- `model`: Optional model name (e.g., `flux`, `turbo`)
+
 #### POST `/api/ai/stream`
 Generate text with streaming response (SSE).
 
@@ -110,11 +135,11 @@ Generate text with streaming response (SSE).
 Get the current status and usage stats of all providers.
 
 #### GET `/llms`
-View a simple HTML status dashboard in your browser.
+View the real-time health dashboard in your browser.
 
 ## Testing
 
-Run the test suite to verify provider connectivity:
+Run the test suite to verify provider connectivity (includes both text and image models):
 
 ```bash
 npm test

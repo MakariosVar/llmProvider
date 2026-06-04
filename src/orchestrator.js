@@ -64,6 +64,64 @@ export function cleanupHttpAgents() {
 }
 
 class Orchestrator {
+    async generateImage(params) {
+        const { prompt } = params;
+        let requestedModel = params.model;
+
+        // Get candidates
+        let candidates = providerManager.getProvidersByType('image')
+            .filter(p => providerManager.canUseProvider(p.id))
+            .sort((a, b) => a.priority - b.priority);
+
+        if (requestedModel) {
+            candidates = candidates.filter(p => {
+                const models = providerManager.getAllModels(p.id, 'image');
+                return models.includes(requestedModel);
+            });
+        }
+
+        if (candidates.length === 0) {
+            throw new Error('No available image providers');
+        }
+
+        let allErrors = [];
+
+        for (const provider of candidates) {
+            if (!circuitBreaker.canAttempt(provider.id)) continue;
+
+            let models = providerManager.getAllModels(provider.id, 'image');
+            if (requestedModel) {
+                models = models.filter(m => m === requestedModel);
+            }
+
+            for (const model of models) {
+                if (providerManager.isRateLimited(provider.id, model)) continue;
+
+                try {
+                    logger.info(`Trying image provider: ${provider.name}, model: ${model}`);
+                    const response = await this.callProvider(provider, prompt, null, 0.7, model, 'image');
+
+                    providerManager.incrementUsage(provider.id);
+                    providerManager.updateStatus(provider.id, 'online');
+                    providerManager.updateModelStatus(provider.id, model, 'online');
+                    providerManager.clearRateLimit(provider.id, model);
+                    circuitBreaker.recordSuccess(provider.id);
+
+                    return {
+                        provider: provider.name,
+                        model: model,
+                        imageUrl: response
+                    };
+                } catch (error) {
+                    logger.error(`Image Provider ${provider.name} failed: ${error.message}`);
+                    allErrors.push(error);
+                    circuitBreaker.recordFailure(provider.id);
+                }
+            }
+        }
+        throw new AllProvidersFailedError(allErrors);
+    }
+
     async generate(params) {
         const { prompt, systemPrompt, temperature = 0.7 } = params;
         let requestedModel = params.model;
@@ -206,7 +264,7 @@ class Orchestrator {
         throw new AllProvidersFailedError(allErrors);
     }
 
-    async callProvider(provider, prompt, systemPrompt, temperature, model = null) {
+    async callProvider(provider, prompt, systemPrompt, temperature, model = null, type = 'text') {
         // This is where we normalize the API calls.
         // Most support OpenAI compatible API.
 
@@ -215,6 +273,39 @@ class Orchestrator {
         let url = provider.endpoint.replace('{model}', selectedModel).replace('{accountId}', provider.accountId || '');
         if (provider.id === 'ollama') {
             url = url.replace('{host}', provider.host);
+        }
+
+        // Handle Image Generation
+        if (type === 'image') {
+            if (provider.id === 'pollinations') {
+                return provider.endpoint
+                    .replace('{prompt}', encodeURIComponent(prompt))
+                    .replace('{model}', model || provider.models[0]);
+            }
+
+            if (provider.id === 'cloudflare') {
+                const response = await axiosInstance.post(url, { prompt }, {
+                    headers: {
+                        'Authorization': `Bearer ${provider.key}`,
+                        'Content-Type': 'application/json'
+                    },
+                    responseType: 'arraybuffer'
+                });
+                
+                // Cloudflare might return binary or JSON with base64
+                const contentType = response.headers['content-type'] || '';
+                if (contentType.includes('application/json')) {
+                    const json = JSON.parse(Buffer.from(response.data).toString());
+                    if (json.result && json.result.image) {
+                        return `data:image/png;base64,${json.result.image}`;
+                    }
+                }
+
+                const base64 = Buffer.from(response.data, 'binary').toString('base64');
+                return `data:image/png;base64,${base64}`;
+            }
+
+            throw new Error(`Image generation not implemented for provider: ${provider.name}`);
         }
 
         // Handle Gemini specific URL if needed, but config has it.

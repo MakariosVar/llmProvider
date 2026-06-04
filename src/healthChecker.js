@@ -28,7 +28,7 @@ class HealthChecker {
 
     async checkProvider(provider, force = false) {
         // Skip if no key provided (unless it's Ollama or doesn't need one)
-        if (!provider.key && provider.id !== 'ollama' && provider.id !== 'openrouter' && provider.id !== 'apifreellm') {
+        if (!provider.key && provider.id !== 'ollama' && provider.id !== 'openrouter' && provider.id !== 'apifreellm' && provider.id !== 'pollinations') {
             if (provider.id !== 'ollama' && provider.id !== 'apifreellm' && !provider.key) {
                 providerManager.updateStatus(provider.id, 'unconfigured');
                 return;
@@ -61,22 +61,28 @@ class HealthChecker {
             // Check each model individually
             const models = provider.models || [];
             for (const model of models) {
-                await this.checkModel(provider, model);
+                await this.checkModel(provider, model, 'text');
+            }
+
+            // Check image models
+            const imageModels = provider.imageModels || [];
+            for (const model of imageModels) {
+                await this.checkModel(provider, model, 'image');
             }
         }
     }
 
-    async checkModel(provider, model) {
+    async checkModel(provider, model, type = 'text') {
         try {
             // Use a more realistic test prompt that matches agent usage patterns
             // This helps catch issues that simple "hi" tests might miss
             const orchestrator = (await import('./orchestrator.js')).default;
 
             // Test with a slightly longer prompt and system prompt to better match real usage
-            const testPrompt = 'Respond with a brief confirmation that you are working.';
+            const testPrompt = type === 'image' ? 'A small white square' : 'Respond with a brief confirmation that you are working.';
             const testSystemPrompt = 'You are a helpful assistant.';
             
-            await orchestrator.callProvider(provider, testPrompt, testSystemPrompt, 0.7, model);
+            await orchestrator.callProvider(provider, testPrompt, testSystemPrompt, 0.7, model, type);
 
             providerManager.updateModelStatus(provider.id, model, 'online');
             providerManager.updateStatus(provider.id, 'online');
@@ -98,7 +104,11 @@ class HealthChecker {
                 providerManager.markRateLimited(provider.id, model);
             } else if (isTransientError) {
                 // Don't mark as error for transient issues - just log
-                logger.warn(`Health check: Transient error for ${provider.id} / ${model}: ${error.message}`);
+                if (global.logger) {
+                    global.logger.warn(`Health check: Transient error for ${provider.id} / ${model}: ${error.message}`);
+                } else {
+                    console.warn(`Health check: Transient error for ${provider.id} / ${model}: ${error.message}`);
+                }
                 // Keep status as unknown/previous status
             } else {
                 // Only mark as error for permanent issues (4xx, auth, etc.)

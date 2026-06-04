@@ -9,18 +9,21 @@ export default {
             name: 'Google Gemini',
             key: process.env.GEMINI_API_KEY,
             models: [
+                'gemini-3.1-pro-preview', // Replaced broken gemini-3-pro-preview
                 'gemini-3-flash-preview',
-                'gemini-3-pro-preview',
+                'gemini-3.1-flash-lite',  // Added latest 3.1 cost-efficient model
                 'gemini-2.5-pro',
                 'gemini-2.5-flash',
                 'gemini-2.5-flash-lite',
             ],
-            rpm: 60,  // Updated for 2.5 Flash
-            daily_limit: 2000,  // Conservative estimate
+            rpm: 60,                      // Keep 60 if using the standard free tier
+            daily_limit: 2000,
             priority: 1,
             heavy_usage: 95,
+            // Note: Ensure your HTTP client appends the "Api-Revision: 2026-05-20" header for this endpoint
             endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
         },
+
         groq: {
             name: 'Groq',
             key: process.env.GROQ_API_KEY,
@@ -79,7 +82,11 @@ export default {
             daily_limit: 10000,
             priority: 4,
             heavy_usage: 80,
-            endpoint: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/{model}'
+            endpoint: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/{model}',
+            imageModels: [
+                "@cf/bytedance/stable-diffusion-xl-lightning",
+                "@cf/black-forest-labs/flux-1-schnell"
+            ],
         },
         github: {
             name: 'GitHub Models',
@@ -188,6 +195,15 @@ export default {
             priority: 15,
             heavy_usage: 60,
             endpoint: '{host}/v1/chat/completions'
+        },
+        pollinations: {
+            name: 'Pollinations.ai',
+            type: 'image',
+            models: ['flux', 'turbo'],
+            rpm: 30,
+            daily_limit: 1000,
+            priority: 1,
+            endpoint: 'https://image.pollinations.ai/prompt/{prompt}?model={model}&nologo=true'
         }
     }
 };

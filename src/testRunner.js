@@ -74,14 +74,23 @@ async function runTests() {
         }
 
         // Test each model individually
-        const models = providerManager.getAllModels(provider.id);
-        totalModels += models.length;
+        const textModels = providerManager.getAllModels(provider.id, 'text');
+        const imageModels = providerManager.getAllModels(provider.id, 'image');
+        
+        const allModels = [
+            ...textModels.map(m => ({ name: m, type: 'text' })),
+            ...imageModels.map(m => ({ name: m, type: 'image' }))
+        ];
 
-        for (const model of models) {
-            process.stdout.write(`  ${model}... `);
+        totalModels += allModels.length;
+
+        for (const modelObj of allModels) {
+            const { name: model, type } = modelObj;
+            process.stdout.write(`  ${model} (${type})... `);
             try {
-                // Simple "hi" test for this specific model
-                const response = await orchestrator.callProvider(provider, 'hi', null, 0.7, model);
+                // Simple test for this specific model
+                const testPrompt = type === 'image' ? 'a small square' : 'hi';
+                const response = await orchestrator.callProvider(provider, testPrompt, null, 0.7, model, type);
                 if (response) {
                     console.log('PASS');
                     passed++;

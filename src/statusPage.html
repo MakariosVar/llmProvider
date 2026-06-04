@@ -174,23 +174,12 @@
 
             providersData.forEach(p => {
                 totalP++;
-                const models = p.models || [];
-                
-                // Calculate provider health
-                // We need model statuses. The provider object from getAllProviders() might not have deep model status if not merged?
-                // Actually providerManager.getAllProviders() returns the provider config + top level status.
-                // We need to fetch model statuses separately or ensure they are attached.
-                // Let's assume the server sends enriched data or we need to fetch it.
-                // Wait, providerManager.getAllProviders() returns the provider object.
-                // The provider object has `models` array.
-                // But `modelStatus` is stored separately in `providerManager.modelStatus`.
-                // We need to make sure the `status_update` event sends EVERYTHING including model statuses.
-                // I should check `server.js` or `providerManager.js` to see what `getAllProviders()` returns.
-                // It returns `Object.values(this.providers)`.
-                // `this.providers` has `status` but not per-model status (that's in `this.modelStatus`).
-                
-                // FIX: I need to update `providerManager.getAllProviders()` or the socket event to include model statuses.
-                // For now, let's assume the data structure I WANT is passed. I will fix the backend to pass it.
+                const textModels = p.models || [];
+                const imageModels = p.imageModels || [];
+                const allModels = [
+                    ...textModels.map(m => ({ name: m, type: 'text' })),
+                    ...imageModels.map(m => ({ name: m, type: 'image' }))
+                ];
                 
                 const card = document.createElement('div');
                 card.className = 'glass rounded-2xl p-6 card-hover transition-all duration-300 flex flex-col h-full';
@@ -199,8 +188,9 @@
                 let pOnline = 0;
                 let latestUpdate = 0;
 
-                models.forEach(m => {
-                    // We need to find the status for this model.
+                allModels.forEach(modelObj => {
+                    const m = modelObj.name;
+                    const type = modelObj.type;
                     const mStatusObj = p.modelStatuses ? p.modelStatuses[m] : { status: 'unknown' };
                     const mStatus = mStatusObj ? mStatusObj.status : 'unknown';
                     const mError = mStatusObj ? mStatusObj.lastError : null;
@@ -235,7 +225,10 @@
 
                     modelsHtml += `
                         <div class="flex items-center justify-between py-2 border-b border-slate-700/50 last:border-0">
-                            <span class="text-sm font-medium text-slate-200 truncate pr-4" title="${m}">${m}</span>
+                            <div class="flex flex-col truncate pr-4">
+                                <span class="text-sm font-medium text-slate-200 truncate" title="${m}">${m}</span>
+                                <span class="text-[10px] text-slate-500 uppercase">${type}</span>
+                            </div>
                             <div class="flex items-center gap-2 shrink-0">
                                 <span class="text-xs ${textClass}">${displayStatus}</span>
                                 <span class="${displayClass} status-dot"></span>
@@ -251,12 +244,12 @@
                         <div>
                             <h3 class="text-xl font-bold text-white">${p.name}</h3>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="text-xs text-slate-400 uppercase tracking-wider">${pOnline} / ${models.length} Online</span>
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">${pOnline} / ${allModels.length} Online</span>
                             </div>
                             <div class="text-[10px] text-slate-500 mt-1">Last Update: ${lastUpdateStr}</div>
                         </div>
                         <div class="bg-slate-800/50 px-3 py-1 rounded-lg text-xs font-mono text-slate-400">
-                            ${models.length} Models
+                            ${allModels.length} Models
                         </div>
                     </div>
                     <div class="mt-auto space-y-1 max-h-60 overflow-y-auto pr-2 custom-scrollbar">

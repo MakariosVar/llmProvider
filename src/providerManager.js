@@ -39,7 +39,8 @@ class ProviderManager {
             this.modelStatus[key] = {};
 
             // Load persistent status and iterate models
-            for (const model of providerConfig.models || []) {
+            const allPossibleModels = [...(providerConfig.models || []), ...(providerConfig.imageModels || [])];
+            for (const model of allPossibleModels) {
                 const pStatus = statusPersistence.get(key, model);
                 if (pStatus) {
                     // Check if expired (5 mins)
@@ -205,8 +206,23 @@ class ProviderManager {
         });
     }
 
-    getAllModels(providerId) {
+    getProvidersByType(type = 'text') {
+        return Object.values(this.providers).filter(p => {
+            if (type === 'image') {
+                return p.type === 'image' || (p.imageModels && p.imageModels.length > 0);
+            }
+            return p.type === 'text' || !p.type; // Default to text
+        });
+    }
+
+    getAllModels(providerId, type = 'text') {
         const provider = this.providers[providerId];
+        if (type === 'image') {
+            // Priority: imageModels array, then models array if type is image
+            if (provider?.imageModels && provider.imageModels.length > 0) return provider.imageModels;
+            if (provider?.type === 'image') return provider.models || [];
+            return [];
+        }
         return provider?.models || [];
     }
 
