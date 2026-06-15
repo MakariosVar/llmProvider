@@ -345,7 +345,8 @@ class Orchestrator {
         // OpenAI Compatible (Groq, OpenRouter, Ollama, etc.)
         // Headers
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(provider.headers || {}) // Merge custom headers from config
         };
         if (provider.key) {
             headers['Authorization'] = `Bearer ${provider.key}`;
@@ -662,7 +663,8 @@ class Orchestrator {
 
         // OpenAI Compatible Streaming (Groq, OpenRouter, Ollama, etc.)
         const headers = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            ...(provider.headers || {}) // Merge custom headers from config
         };
         if (provider.key) {
             headers['Authorization'] = `Bearer ${provider.key}`;

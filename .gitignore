@@ -1,3 +1,6 @@
 /.env
 /node_modules
-/status_db.json
+status_db.json
+
+!README.md
+*.md
