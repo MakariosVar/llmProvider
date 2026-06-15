@@ -5,6 +5,8 @@ import providerManager from './providerManager.js';
 import winston from 'winston';
 import CircuitBreaker from './circuitBreaker.js';
 import { AllProvidersFailedError } from './errors.js';
+import chalk from 'chalk';
+
 
 // Create logger instance for orchestrator
 const logger = winston.createLogger({
@@ -12,7 +14,21 @@ const logger = winston.createLogger({
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.printf(({ timestamp, level, message }) => {
-            return `[${timestamp}] [${level.toUpperCase()}] [Orchestrator] ${message}`;
+            const time = chalk.yellow(`[${timestamp}]`);
+
+            const levelColors = {
+            debug: chalk.gray,
+            info: chalk.cyan,
+            warn: chalk.yellow,
+            error: chalk.red,
+            };
+
+            const lvl = levelColors[level] 
+            ? levelColors[level.toLowerCase()](`[${level.toUpperCase()}]`)
+            : `[${level.toUpperCase()}]`;
+
+
+            return `${time} ${lvl} [Orchestrator] ${message}`;
         })
     ),
     transports: [
