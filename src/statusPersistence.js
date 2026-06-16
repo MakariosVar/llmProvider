@@ -37,6 +37,45 @@ class StatusPersistence {
                 error_message TEXT
             )
         `);
+
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS model_pricing (
+                model_name TEXT PRIMARY KEY,
+                prompt_price REAL,
+                completion_price REAL,
+                updated_at INTEGER
+            )
+        `);
+    }
+
+    upsertPricing(modelName, promptPrice, completionPrice) {
+        try {
+            const insert = this.db.prepare(`
+                INSERT OR REPLACE INTO model_pricing (model_name, prompt_price, completion_price, updated_at)
+                VALUES (?, ?, ?, ?)
+            `);
+            insert.run(modelName, promptPrice, completionPrice, Date.now());
+        } catch (error) {
+            console.error('Failed to upsert pricing in SQLite:', error.message);
+        }
+    }
+
+    getPricing(modelName) {
+        try {
+            return this.db.prepare('SELECT * FROM model_pricing WHERE model_name = ?').get(modelName);
+        } catch (error) {
+            console.error('Failed to get pricing from SQLite:', error.message);
+            return null;
+        }
+    }
+
+    getAllPricing() {
+        try {
+            return this.db.prepare('SELECT * FROM model_pricing').all();
+        } catch (error) {
+            console.error('Failed to get all pricing from SQLite:', error.message);
+            return [];
+        }
     }
 
     migrateFromJson() {

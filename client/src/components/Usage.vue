@@ -21,6 +21,10 @@
         <div class="flex items-baseline gap-2">
           <span class="text-3xl font-black text-[var(--accent-text)]">${{ estimatedSavings }}</span>
         </div>
+        <select v-model="selectedModel" class="mt-2 p-2 bg-[var(--accent-text)]/10 text-[var(--accent-text)] border border-[var(--accent-text)]/30 rounded-lg text-xs font-bold focus:outline-none">
+           <option value="all" class="bg-[var(--bg-color)] text-[var(--text-color)]">All Models</option>
+           <option v-for="m in modelNames" :key="m" :value="m" class="bg-[var(--bg-color)] text-[var(--text-color)]">{{ m }}</option>
+        </select>
       </div>
     </div>
 
@@ -107,10 +111,17 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
 const stats = ref(null)
+const pricingData = ref([])
 const history = ref([])
 const activeLeaderboard = ref('Tokens')
+const selectedModel = ref('all')
 const themeStore = useThemeStore()
 const chartKey = ref(0) 
+
+const modelNames = computed(() => {
+    if (!stats.value || !stats.value.models) return []
+    return [...new Set(stats.value.models.map(m => m.model_name))]
+})
 
 const summaryStats = computed(() => {
   if (!stats.value || !stats.value.summary) return []
@@ -126,11 +137,24 @@ const summaryStats = computed(() => {
 })
 
 const estimatedSavings = computed(() => {
-    if (!stats.value || !stats.value.summary) return '0.00'
-    const totalTokens = stats.value.summary.totalTokens || 0
-    return (totalTokens * 0.0001 * 0.5).toFixed(2)
+    if (!stats.value || !stats.value.models || pricingData.value.length === 0) return '0.00'
+    
+    let totalSavings = 0
+    const models = stats.value.models
+    
+    for (const m of models) {
+        if (selectedModel.value !== 'all' && m.model_name !== selectedModel.value) continue
+        
+        const priceInfo = pricingData.value.find(p => p.model_name === m.model_name)
+        if (priceInfo) {
+            // Price is per 1M tokens.
+            const costPerToken = (priceInfo.prompt_price + priceInfo.completion_price) / 2 / 1000000
+            // Savings is 50% of the cost of running on a paid provider
+            totalSavings += m.total_tokens * costPerToken * 0.5
+        }
+    }
+    return totalSavings.toFixed(2)
 })
-
 const leaderboardData = computed(() => {
     if (!stats.value || !stats.value.models) return []
     const m = stats.value.models
@@ -166,12 +190,14 @@ watch(() => themeStore.isDark, async () => {
 
 const fetchData = async () => {
   try {
-    const [statsRes, historyRes] = await Promise.all([
+    const [statsRes, historyRes, pricingRes] = await Promise.all([
       axios.get('/api/usage/stats'),
-      axios.get('/api/usage/history?limit=20')
+      axios.get('/api/usage/history?limit=20'),
+      axios.get('/api/usage/pricing')
     ])
     stats.value = statsRes.data
     history.value = historyRes.data
+    pricingData.value = pricingRes.data
   } catch (e) {
     console.error('Failed to fetch analytics:', e)
   }

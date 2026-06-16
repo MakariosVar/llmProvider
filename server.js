@@ -9,6 +9,7 @@ import orchestrator from './src/orchestrator.js';
 import healthChecker from './src/healthChecker.js';
 import providerManager from './src/providerManager.js';
 import statusPersistence from './src/statusPersistence.js';
+import pricingManager from './src/pricingManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -179,6 +180,10 @@ app.get('/api/usage/history', (req, res) => {
     res.json(statusPersistence.getHistory(limit, offset));
 });
 
+app.get('/api/usage/pricing', (req, res) => {
+    res.json(statusPersistence.getAllPricing());
+});
+
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
@@ -269,6 +274,9 @@ app.get('*', (req, res) => {
 
     // Start Health Checker
     healthChecker.start();
+
+    // Start Pricing Manager
+    pricingManager.start();
 
     // Periodically emit status
     setInterval(() => {
