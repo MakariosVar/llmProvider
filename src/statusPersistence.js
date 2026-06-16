@@ -57,23 +57,25 @@ class StatusPersistence {
             }
         }
 
+        this.db.exec("DROP TABLE IF EXISTS model_pricing");
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS model_pricing (
                 model_name TEXT PRIMARY KEY,
                 prompt_price REAL,
                 completion_price REAL,
+                rating REAL,
                 updated_at INTEGER
             )
         `);
     }
 
-    upsertPricing(modelName, promptPrice, completionPrice) {
+    upsertPricing(modelName, promptPrice, completionPrice, rating) {
         try {
             const insert = this.db.prepare(`
-                INSERT OR REPLACE INTO model_pricing (model_name, prompt_price, completion_price, updated_at)
-                VALUES (?, ?, ?, ?)
+                INSERT OR REPLACE INTO model_pricing (model_name, prompt_price, completion_price, rating, updated_at)
+                VALUES (?, ?, ?, ?, ?)
             `);
-            insert.run(modelName, promptPrice, completionPrice, Date.now());
+            insert.run(modelName, promptPrice, completionPrice, rating, Date.now());
         } catch (error) {
             console.error('Failed to upsert pricing in SQLite:', error.message);
         }

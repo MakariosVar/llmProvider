@@ -34,7 +34,7 @@
                                 : 'text-[var(--accent-text)] hover:bg-[var(--accent-text)]/10'
                         ]">
                         {{ opt }}
-                        <span v-if="opt !== 'Average'" class="opacity-70 text-[10px] block truncate">
+                        <span v-if="opt !== 'Average'" :class="['opacity-70 text-[10px] block truncate', opt === 'Highest' ? '!text-[var(--error-text)]' : '!text-[var(--success-text)]']">
                             {{ opt === 'Highest' ? highestModel : cheapestModel }}
                         </span>
                     </button>
@@ -43,6 +43,7 @@
                     <v-select
                       v-model="selectedModel"
                       :options="modelNames"
+                      :reduce="model => model.value"
                       placeholder="Or select specific model..."
                       :clearable="true"
                       :searchable="true"
@@ -63,18 +64,22 @@
                         <th class="py-2 px-1">Cost</th>
                     </tr>
                 </thead>
-                <tbody v-if="pricingDetails">
+                <tbody>
                     <tr>
                         <td class="py-2 px-1">Input Tokens</td>
-                        <td class="py-2 px-1">{{ pricingDetails.inputTokens.toLocaleString() }}</td>
-                        <td class="py-2 px-1">${{ pricingDetails.promptPrice.toFixed(6) }}</td>
-                        <td class="py-2 px-1">${{ pricingDetails.inputCost.toFixed(8) }}</td>
+                        <td class="py-2 px-1">{{ pricingDetails ? pricingDetails.inputTokens.toLocaleString() : '0' }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails ? pricingDetails.promptPrice.toFixed(6) : '0.000000' }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails ? pricingDetails.inputCost.toFixed(8) : '0.00000000' }}</td>
                     </tr>
                     <tr>
                         <td class="py-2 px-1">Output Tokens</td>
-                        <td class="py-2 px-1">{{ pricingDetails.outputTokens.toLocaleString() }}</td>
-                        <td class="py-2 px-1">${{ pricingDetails.completionPrice.toFixed(6) }}</td>
-                        <td class="py-2 px-1">${{ pricingDetails.outputCost.toFixed(8) }}</td>
+                        <td class="py-2 px-1">{{ pricingDetails ? pricingDetails.outputTokens.toLocaleString() : '0' }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails ? pricingDetails.completionPrice.toFixed(6) : '0.000000' }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails ? pricingDetails.outputCost.toFixed(8) : '0.00000000' }}</td>
+                    </tr>
+                    <tr class="border-t border-[var(--accent-text)]/20 font-bold">
+                        <td class="py-2 px-1">Rating</td>
+                        <td class="py-2 px-1" colspan="3">{{ pricingDetails && !pricingDetails.isAggregate ? ((pricingData.find(p => p.model_name === targetModelName) || {}).rating || 'N/A') + '/10' : 'N/A' }}</td>
                     </tr>
                     <tr class="border-t border-[var(--accent-text)]/20 font-bold">
                         <td class="py-2 px-1" colspan="3">Total Saved</td>
@@ -189,7 +194,13 @@ const cheapestModel = computed(() => {
 })
 
 const modelNames = computed(() => {
-    return pricingData.value.map(p => p.model_name)
+    return [
+        { label: 'Average', value: 'Average' },
+        ...pricingData.value
+            .slice()
+            .sort((a, b) => b.rating - a.rating)
+            .map(p => ({ label: `${p.model_name} (${p.rating}/10)`, value: p.model_name }))
+    ]
 })
 
 const summaryStats = computed(() => {
@@ -206,6 +217,13 @@ const summaryStats = computed(() => {
   ]
 })
 
+const targetModelName = computed(() => {
+    let name = selectedModel.value
+    if (selectedModel.value === 'Highest') name = highestModel.value
+    if (selectedModel.value === 'Cheapest') name = cheapestModel.value
+    return name
+})
+
 const pricingDetails = computed(() => {
     if (!stats.value || !stats.value.summary || pricingData.value.length === 0) return null
     
@@ -213,8 +231,12 @@ const pricingDetails = computed(() => {
     if (selectedModel.value === 'Highest') targetModelName = highestModel.value
     if (selectedModel.value === 'Cheapest') targetModelName = cheapestModel.value
     
+    const totalInputTokens = stats.value.summary.totalInputTokens || 0
+    const totalOutputTokens = stats.value.summary.totalOutputTokens || 0
+    
+    let modelToLookup = targetModelName
+    
     if (selectedModel.value === 'Average') {
-        // Calculate global average prices from all models in pricingData
         const validPricing = pricingData.value.filter(p => p.prompt_price > 0 && p.completion_price > 0)
         
         let totalPromptPrice = 0
@@ -225,38 +247,46 @@ const pricingDetails = computed(() => {
             totalCompletionPrice += Number(p.completion_price)
         }
         
-        const avgPromptPrice = validPricing.length > 0 ? (totalPromptPrice / validPricing.length) : 0
-        const avgCompletionPrice = validPricing.length > 0 ? (totalCompletionPrice / validPricing.length) : 0
-        
-        const inputTokens = stats.value.summary.totalInputTokens || 0
-        const outputTokens = stats.value.summary.totalOutputTokens || 0
+        const avgPromptPricePer1M = validPricing.length > 0 ? (totalPromptPrice / validPricing.length) * 1000000 : 0
+        const avgCompletionPricePer1M = validPricing.length > 0 ? (totalCompletionPrice / validPricing.length) * 1000000 : 0
         
         return {
             isAggregate: true,
-            inputTokens,
-            outputTokens,
-            promptPrice: avgPromptPrice * 1000000,
-            completionPrice: avgCompletionPrice * 1000000,
-            inputCost: inputTokens * avgPromptPrice,
-            outputCost: outputTokens * avgCompletionPrice
+            inputTokens: totalInputTokens,
+            outputTokens: totalOutputTokens,
+            promptPrice: avgPromptPricePer1M,
+            completionPrice: avgCompletionPricePer1M,
+            inputCost: totalInputTokens * (avgPromptPricePer1M / 1000000),
+            outputCost: totalOutputTokens * (avgCompletionPricePer1M / 1000000)
         }
     } else {
-        const priceInfo = pricingData.value.find(p => p.model_name === targetModelName)
-        if (!priceInfo) return null
+        const modelToLookupStr = String(modelToLookup || '').toLowerCase();
+        let priceInfo = pricingData.value.find(p => p.model_name.toLowerCase() === modelToLookupStr)
+        
+        if (!priceInfo) {
+            priceInfo = pricingData.value.find(p => 
+                p.model_name.toLowerCase().includes(modelToLookupStr) || 
+                modelToLookupStr.includes(p.model_name.toLowerCase())
+            );
+        }
 
-        const inputTokens = stats.value.summary.totalInputTokens || 0
-        const outputTokens = stats.value.summary.totalOutputTokens || 0
-        const promptPrice = Number(priceInfo.prompt_price) || 0
-        const completionPrice = Number(priceInfo.completion_price) || 0
+        if (!priceInfo) {
+            console.warn(`Pricing not found for model: ${modelToLookupStr}`);
+            console.warn(modelToLookupStr);
+            return null;
+        }
+
+        const promptPricePer1M = Number(priceInfo.prompt_price) * 1000000
+        const completionPricePer1M = Number(priceInfo.completion_price) * 1000000
         
         return {
             isAggregate: false,
-            inputTokens,
-            outputTokens,
-            promptPrice: promptPrice * 1000000,
-            completionPrice: completionPrice * 1000000,
-            inputCost: inputTokens * promptPrice,
-            outputCost: outputTokens * completionPrice
+            inputTokens: totalInputTokens,
+            outputTokens: totalOutputTokens,
+            promptPrice: promptPricePer1M,
+            completionPrice: completionPricePer1M,
+            inputCost: totalInputTokens * (promptPricePer1M / 1000000),
+            outputCost: totalOutputTokens * (completionPricePer1M / 1000000)
         }
     }
 })
@@ -265,19 +295,7 @@ const estimatedSavings = computed(() => {
     if (pricingDetails.value) {
         return (pricingDetails.value.inputCost + pricingDetails.value.outputCost)
     }
-    
-    // Fallback for 'Average'
-    if (!stats.value || !stats.value.summary || pricingData.value.length === 0) return 0
-    let totalSavings = 0
-    for (const m of stats.value.models || []) {
-        const priceInfo = pricingData.value.find(p => p.model_name === m.model_name)
-        if (priceInfo) {
-            const inputCost = (m.total_input_tokens || 0) * Number(priceInfo.prompt_price) / 1000000
-            const outputCost = (m.total_output_tokens || 0) * Number(priceInfo.completion_price) / 1000000
-            totalSavings += (inputCost + outputCost)
-        }
-    }
-    return totalSavings
+    return 0
 })
 
 const leaderboardData = computed(() => {
