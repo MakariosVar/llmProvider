@@ -1,0 +1,41 @@
+<template>
+  <div class="flex items-center justify-center h-[calc(100vh-4rem)]">
+    <div class="w-full max-w-sm p-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl">
+      <div class="mb-8 text-center">
+        <h2 class="text-2xl font-bold text-white mb-2">Secure Access</h2>
+        <p class="text-slate-400 text-sm">Enter credentials for LLM Provider</p>
+      </div>
+      <form @submit.prevent="login" class="space-y-4">
+        <div>
+          <input v-model="username" placeholder="Username" class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+        </div>
+        <div>
+          <input v-model="password" type="password" placeholder="Password" class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
+        </div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../store'
+
+const username = ref('')
+const password = ref('')
+const router = useRouter()
+const authStore = useAuthStore()
+
+const login = () => {
+  if (username.value === 'admin' && password.value === 'admin') {
+    authStore.login()
+    router.push('/status')
+  } else {
+    alert('Unauthorized Access')
+  }
+}
+</script>

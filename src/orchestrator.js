@@ -139,7 +139,7 @@ class Orchestrator {
     }
 
     async generate(params) {
-        const { prompt, systemPrompt, temperature = 0.7 } = params;
+        const { prompt, messages: history, systemPrompt, temperature = 0.7 } = params;
         let requestedModel = params.model;
 
         // If no explicit model, check if mode is a specific model name (not an abstract mode)
@@ -216,7 +216,7 @@ class Orchestrator {
 
                 try {
                     logger.info(`Trying provider: ${provider.name}, model: ${model}`);
-                    const response = await this.callProvider(provider, prompt, systemPrompt, temperature, model);
+                    const response = await this.callProvider(provider, prompt, systemPrompt, temperature, model, 'text', history);
 
                     providerManager.incrementUsage(provider.id);
                     providerManager.updateStatus(provider.id, 'online');
@@ -280,7 +280,7 @@ class Orchestrator {
         throw new AllProvidersFailedError(allErrors);
     }
 
-    async callProvider(provider, prompt, systemPrompt, temperature, model = null, type = 'text') {
+    async callProvider(provider, prompt, systemPrompt, temperature, model = null, type = 'text', history = null) {
         // This is where we normalize the API calls.
         // Most support OpenAI compatible API.
 
@@ -330,10 +330,25 @@ class Orchestrator {
 
         if (provider.id === 'google_gemini') {
             url = url.replace('{key}', provider.key);
-            const data = {
-                contents: [{
+            
+            let contents = [];
+            if (history && history.length > 0) {
+                contents = history.map(msg => ({
+                    role: msg.role === 'ai' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                }));
+            }
+            
+            // Add current prompt if not in history or as the last message
+            if (prompt) {
+                contents.push({
+                    role: 'user',
                     parts: [{ text: (systemPrompt ? systemPrompt + "\n" : "") + prompt }]
-                }],
+                });
+            }
+
+            const data = {
+                contents,
                 generationConfig: {
                     temperature: temperature
                 }
@@ -363,7 +378,17 @@ class Orchestrator {
                 messages: []
             };
             if (systemPrompt) data.system = systemPrompt;
-            data.messages.push({ role: 'user', content: prompt });
+            
+            if (history && history.length > 0) {
+                data.messages = history.map(msg => ({
+                    role: msg.role === 'ai' ? 'assistant' : 'user',
+                    content: msg.content
+                }));
+            }
+            
+            if (prompt) {
+                data.messages.push({ role: 'user', content: prompt });
+            }
 
             // Anthropic requires specific version header and the API key in `x-api-key`
             headers['anthropic-version'] = '2023-06-01';
@@ -385,15 +410,36 @@ class Orchestrator {
                 temperature: temperature
             };
             if (systemPrompt) data.messages.push({ role: 'system', content: systemPrompt });
-            data.messages.push({ role: 'user', content: prompt });
+            
+            if (history && history.length > 0) {
+                history.forEach(msg => {
+                    data.messages.push({
+                        role: msg.role === 'ai' ? 'assistant' : 'user',
+                        content: msg.content
+                    });
+                });
+            }
+            
+            if (prompt) {
+                data.messages.push({ role: 'user', content: prompt });
+            }
+
             const response = await axiosInstance.post(url, data, { headers });
             return response.data.message.content[0].text;
         }
 
         // NLP Cloud generation endpoint
         if (provider.id === 'nlpcloud') {
+            let fullText = (systemPrompt ? systemPrompt + "\n" : "");
+            if (history && history.length > 0) {
+                history.forEach(msg => {
+                    fullText += `${msg.role === 'ai' ? 'Assistant' : 'User'}: ${msg.content}\n`;
+                });
+            }
+            fullText += `User: ${prompt}\nAssistant:`;
+
             const data = {
-                text: (systemPrompt ? systemPrompt + "\n" : "") + prompt,
+                text: fullText,
                 max_length: 500
             };
             const response = await axiosInstance.post(url, data, { headers });
@@ -402,8 +448,16 @@ class Orchestrator {
 
         // APIFreeLLM Specific
         if (provider.id === 'apifreellm') {
+            let fullText = (systemPrompt ? systemPrompt + "\n" : "");
+            if (history && history.length > 0) {
+                history.forEach(msg => {
+                    fullText += `${msg.role === 'ai' ? 'Assistant' : 'User'}: ${msg.content}\n`;
+                });
+            }
+            fullText += `User: ${prompt}`;
+
             const data = {
-                message: (systemPrompt ? systemPrompt + "\n" : "") + prompt
+                message: fullText
             };
             const response = await axiosInstance.post(url, data, { headers });
             if (response.data.status === 'success') {
@@ -415,7 +469,19 @@ class Orchestrator {
 
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-        messages.push({ role: 'user', content: prompt });
+        
+        if (history && history.length > 0) {
+            history.forEach(msg => {
+                messages.push({
+                    role: msg.role === 'ai' ? 'assistant' : 'user',
+                    content: msg.content
+                });
+            });
+        }
+        
+        if (prompt) {
+            messages.push({ role: 'user', content: prompt });
+        }
 
         const data = {
             model: selectedModel,
@@ -443,7 +509,7 @@ class Orchestrator {
     // Stream-friendly wrapper: calls a provider (or fallback) and emits chunks
     // via the provided `onData(chunk)` callback.
     async stream(params, onData) {
-        const { prompt, systemPrompt, temperature = 0.7 } = params;
+        const { prompt, messages: history, systemPrompt, temperature = 0.7 } = params;
         let requestedModel = params.model;
         if (!requestedModel && params.mode && !['fast', 'smart', 'coding', 'general', 'pending'].includes(params.mode)) {
             requestedModel = params.mode;
@@ -504,7 +570,7 @@ class Orchestrator {
                     await this.callProviderStream(provider, prompt, systemPrompt, temperature, model, (chunk) => {
                         fullContent += chunk;
                         if (typeof onData === 'function') onData({ type: 'data', token: chunk });
-                    });
+                    }, history);
 
                     providerManager.incrementUsage(provider.id);
                     providerManager.updateStatus(provider.id, 'online');
@@ -543,7 +609,7 @@ class Orchestrator {
         throw new AllProvidersFailedError(allErrors);
     }
 
-    async callProviderStream(provider, prompt, systemPrompt, temperature, model = null, onChunk) {
+    async callProviderStream(provider, prompt, systemPrompt, temperature, model = null, onChunk, history = null) {
         const selectedModel = model || provider.models[0];
         let url = provider.endpoint.replace('{model}', selectedModel).replace('{accountId}', provider.accountId || '');
         if (provider.id === 'ollama') {
@@ -557,10 +623,23 @@ class Orchestrator {
             url = url.replace('{key}', provider.key);
             url += '&alt=sse'; // Ensure SSE format
 
-            const data = {
-                contents: [{
+            let contents = [];
+            if (history && history.length > 0) {
+                contents = history.map(msg => ({
+                    role: msg.role === 'ai' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                }));
+            }
+            
+            if (prompt) {
+                contents.push({
+                    role: 'user',
                     parts: [{ text: (systemPrompt ? systemPrompt + "\n" : "") + prompt }]
-                }],
+                });
+            }
+
+            const data = {
+                contents,
                 generationConfig: {
                     temperature: temperature
                 }
@@ -622,7 +701,17 @@ class Orchestrator {
                 stream: true
             };
             if (systemPrompt) data.system = systemPrompt;
-            data.messages.push({ role: 'user', content: prompt });
+            
+            if (history && history.length > 0) {
+                data.messages = history.map(msg => ({
+                    role: msg.role === 'ai' ? 'assistant' : 'user',
+                    content: msg.content
+                }));
+            }
+            
+            if (prompt) {
+                data.messages.push({ role: 'user', content: prompt });
+            }
 
             const response = await axiosInstance.post(url, data, {
                 headers,
@@ -633,11 +722,6 @@ class Orchestrator {
             stream.on('data', (chunk) => {
                 const lines = chunk.toString().split('\n');
                 for (const line of lines) {
-                    if (line.startsWith('event: content_block_delta') || line.startsWith('data:')) {
-                        // Anthropic sends event: ... then data: ...
-                        // But axios stream might give us raw bytes.
-                        // Simplified parsing for Anthropic SSE
-                    }
                     if (line.startsWith('data:')) {
                         const jsonStr = line.substring(5).trim();
                         if (jsonStr === '[DONE]') return;
@@ -675,7 +759,19 @@ class Orchestrator {
 
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-        messages.push({ role: 'user', content: prompt });
+        
+        if (history && history.length > 0) {
+            history.forEach(msg => {
+                messages.push({
+                    role: msg.role === 'ai' ? 'assistant' : 'user',
+                    content: msg.content
+                });
+            });
+        }
+        
+        if (prompt) {
+            messages.push({ role: 'user', content: prompt });
+        }
 
         const data = {
             model: selectedModel,

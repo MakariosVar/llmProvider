@@ -1,0 +1,191 @@
+{
+  "google_gemini": {
+    "gemini-3.5-flash": {
+      "status": "online",
+      "lastUpdated": 1781618580960,
+      "error": null
+    },
+    "gemini-3.1-flash-lite": {
+      "status": "online",
+      "lastUpdated": 1781619159416,
+      "error": null
+    }
+  },
+  "cerebras": {
+    "gpt-oss-120b": {
+      "status": "error",
+      "lastUpdated": 1781619550602,
+      "error": "Rate limited (cached)"
+    },
+    "zai-glm-4.7": {
+      "status": "online",
+      "lastUpdated": 1781619560017,
+      "error": null
+    }
+  },
+  "groq": {
+    "meta-llama/llama-4-scout-17b-16e-instruct": {
+      "status": "online",
+      "lastUpdated": 1781618583632,
+      "error": null
+    },
+    "llama-3.3-70b-versatile": {
+      "status": "online",
+      "lastUpdated": 1781618584077,
+      "error": null
+    },
+    "openai/gpt-oss-120b": {
+      "status": "online",
+      "lastUpdated": 1781618584341,
+      "error": null
+    },
+    "qwen/qwen3-32b": {
+      "status": "online",
+      "lastUpdated": 1781619523616,
+      "error": null
+    },
+    "openai/gpt-oss-20b": {
+      "status": "online",
+      "lastUpdated": 1781618584966,
+      "error": null
+    },
+    "llama-3.1-8b-instant": {
+      "status": "online",
+      "lastUpdated": 1781618585065,
+      "error": null
+    }
+  },
+  "openrouter": {
+    "openrouter/auto": {
+      "status": "online",
+      "lastUpdated": 1781618586276,
+      "error": null
+    }
+  },
+  "cloudflare": {
+    "@cf/meta/llama-4-scout-17b-16e-instruct": {
+      "status": "online",
+      "lastUpdated": 1781618586857,
+      "error": null
+    },
+    "@cf/moonshotai/kimi-k2.7-code": {
+      "status": "error",
+      "lastUpdated": 1781618587107,
+      "error": "Rate limited"
+    },
+    "@cf/zai-org/glm-4.7-flash": {
+      "status": "online",
+      "lastUpdated": 1781618592074,
+      "error": null
+    },
+    "@cf/google/gemma-4-26b-a4b-it": {
+      "status": "online",
+      "lastUpdated": 1781618596562,
+      "error": null
+    },
+    "@cf/bytedance/stable-diffusion-xl-lightning": {
+      "status": "online",
+      "lastUpdated": 1781618600485,
+      "error": null
+    },
+    "@cf/black-forest-labs/flux-1-schnell": {
+      "status": "online",
+      "lastUpdated": 1781618601910,
+      "error": null
+    }
+  },
+  "github": {
+    "gpt-4o": {
+      "status": "online",
+      "lastUpdated": 1781618603550,
+      "error": null
+    },
+    "gpt-4o-mini": {
+      "status": "online",
+      "lastUpdated": 1781618604978,
+      "error": null
+    },
+    "Meta-Llama-3.1-405B-Instruct": {
+      "status": "online",
+      "lastUpdated": 1781618606148,
+      "error": null
+    },
+    "Meta-Llama-3.1-8B-Instruct": {
+      "status": "online",
+      "lastUpdated": 1781618606874,
+      "error": null
+    }
+  },
+  "cohere": {
+    "command-a-plus-05-2026": {
+      "status": "online",
+      "lastUpdated": 1781618607443,
+      "error": null
+    },
+    "command-a-03-2025": {
+      "status": "online",
+      "lastUpdated": 1781618607919,
+      "error": null
+    }
+  },
+  "huggingface": {
+    "meta-llama/Meta-Llama-3-8B-Instruct": {
+      "status": "online",
+      "lastUpdated": 1781618609116,
+      "error": null
+    },
+    "Qwen/Qwen2.5-7B-Instruct": {
+      "status": "online",
+      "lastUpdated": 1781618609590,
+      "error": null
+    }
+  },
+  "novita": {
+    "mistralai/mistral-nemo": {
+      "status": "online",
+      "lastUpdated": 1781618611076,
+      "error": null
+    },
+    "openai/gpt-oss-20b": {
+      "status": "online",
+      "lastUpdated": 1781618612027,
+      "error": null
+    },
+    "meta-llama/llama-3.1-8b-instruct": {
+      "status": "online",
+      "lastUpdated": 1781618612834,
+      "error": null
+    }
+  },
+  "mistral_ai": {
+    "mistral-small-latest": {
+      "status": "online",
+      "lastUpdated": 1781618613519,
+      "error": null
+    },
+    "open-mistral-nemo": {
+      "status": "online",
+      "lastUpdated": 1781618614006,
+      "error": null
+    }
+  },
+  "pollinations": {
+    "flux": {
+      "status": "error",
+      "lastUpdated": 1781557609327,
+      "error": "Request failed with status code 402"
+    },
+    "turbo": {
+      "status": "error",
+      "lastUpdated": 1781557609584,
+      "error": "Request failed with status code 402"
+    }
+  },
+  "ollama": {
+    "deepseek-r1:1.5b": {
+      "status": "online",
+      "lastUpdated": 1781557605786,
+      "error": null
+    }
+  }
+}

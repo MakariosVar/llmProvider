@@ -2,13 +2,27 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import config from './src/config.js';
 import orchestrator from './src/orchestrator.js';
 import healthChecker from './src/healthChecker.js';
 import providerManager from './src/providerManager.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const httpServer = createServer(app);
+
+// Serve SPA
+app.use(express.static(path.join(__dirname, 'client/dist')));
+console.log(`Serving SPA from: ${path.join(__dirname, 'client/dist')}`);
+
+// Catch-all route to serve index.html for SPA routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+});
 
 // CORS configuration - currently permissive for development
 // TODO: In production, restrict to specific allowed origins

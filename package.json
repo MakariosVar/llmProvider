@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "cd client && npm run build && cd .. && node server.js",
     "test": "node src/testResultsCli.js",
     "chat": "node src/chatTui.js",
     "test:view": "node src/testResultsServer.js",
