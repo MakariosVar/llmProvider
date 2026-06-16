@@ -8,25 +8,54 @@
           COMMAND TERMINAL
         </h2>
         <div class="flex gap-2">
-          <v-select v-model="selectedProvider" :options="providers.map(p => ({label: p.name, code: p.id}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="w-48 bg-white" :append-to-body="true"></v-select>
-          <v-select v-model="selectedModel" :options="availableModels" placeholder="Select Model" class="w-48 bg-white" :append-to-body="true"></v-select>
+          <v-select v-model="selectedProvider" :options="providers.map(p => ({label: p.name, code: p.id, status: p.status}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="w-48 bg-white" :append-to-body="true">
+            <template #option="{ label, status }">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
+                {{ label }}
+              </div>
+            </template>
+            <template #selected-option="{ label, status }">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
+                {{ label }}
+              </div>
+            </template>
+          </v-select>
+          <v-select v-model="selectedModel" :options="availableModels" label="label" :reduce="option => option.code" placeholder="Select Model" class="w-48 bg-white" :append-to-body="true">
+            <template #option="{ label, status }">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
+                {{ label }}
+              </div>
+            </template>
+            <template #selected-option="{ label, status }">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
+                {{ label }}
+              </div>
+            </template>
+          </v-select>
         </div>
       </div>
       
       <div class="flex-1 p-6 overflow-y-auto space-y-4 bg-white" ref="chatContainer">
         <div v-for="msg in messages" :key="msg.id" :class="msg.role === 'user' ? 'text-right' : 'text-left'">
           <div class="inline-block p-4 rounded-[1rem] max-w-[80%] border-2 border-black font-medium" :class="msg.role === 'user' ? 'bg-black text-white' : 'bg-white text-black'">
-            <div v-if="msg.role === 'ai' && (msg.provider || msg.model)" class="text-[10px] font-bold uppercase mb-1 opacity-70">
-              {{ msg.provider }} / {{ msg.model }}
+            <div v-if="msg.role === 'ai'" class="flex justify-between items-center text-[10px] font-bold uppercase mb-1 opacity-70 gap-4">
+              <span>{{ msg.provider || '...' }} / {{ msg.model || '...' }}</span>
+              <span v-if="msg.responseTime" class="bg-black/10 px-2 py-0.5 rounded">
+                {{ (msg.responseTime / 1000).toFixed(2) }}s | {{ msg.tokens }} tokens
+              </span>
             </div>
-            <div v-if="msg.role === 'ai'" v-html="renderMarkdown(msg.content)" class="markdown-content"></div>
+            <div v-if="msg.role === 'ai'" v-html="renderMarkdown(msg.content)" class="markdown-content text-left"></div>
             <div v-else>{{ msg.content }}</div>
           </div>
         </div>
       </div>
 
       <div class="p-4 border-t-2 border-black bg-white">
-        <textarea v-model="prompt" class="w-full p-4 rounded-[1rem] outline-none border-2 border-black text-black resize-none" placeholder="Enter prompt..." rows="3"></textarea>
+        <textarea v-model="prompt" @keydown.enter.exact.prevent="send" class="w-full p-4 rounded-[1rem] outline-none border-2 border-black text-black resize-none" placeholder="Enter prompt..." rows="3"></textarea>
         <button @click="send" :disabled="loading" class="mt-2 w-full py-3 bg-black text-white rounded-[1rem] font-bold transition-all disabled:opacity-50">
           {{ loading ? 'EXECUTING...' : 'EXECUTE COMMAND' }}
         </button>
@@ -53,15 +82,33 @@ const chatContainer = ref(null)
 const socket = io()
 socket.on('status_update', (data) => {
   providers.value = data
+  updateModels()
 })
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'online': return 'bg-emerald-500'
+    case 'offline': return 'bg-red-500'
+    case 'rate_limited': return 'bg-amber-500'
+    case 'error': return 'bg-red-500'
+    default: return 'bg-slate-400'
+  }
+}
 
 const updateModels = () => {
   const p = providers.value.find(p => p.id === selectedProvider.value)
-  availableModels.value = p ? (p.models || []) : []
-  selectedModel.value = ''
+  if (p) {
+    availableModels.value = (p.models || []).map(m => {
+        const mStatus = p.modelStatuses?.[m] || { status: 'unknown' }
+        return { label: m, code: m, status: mStatus.status }
+    })
+  } else {
+    availableModels.value = []
+  }
 }
 
 watch(selectedProvider, () => {
+    selectedModel.value = ''
     updateModels()
 })
 
@@ -89,7 +136,9 @@ const send = async () => {
     role: 'ai', 
     content: '',
     provider: '',
-    model: '' 
+    model: '',
+    responseTime: null,
+    tokens: 0
   })
 
   try {
@@ -144,6 +193,8 @@ const send = async () => {
               messages.value[msgIndex].content += data.token;
             } else if (currentEvent === 'end') {
               messages.value[msgIndex].content = data.content;
+              messages.value[msgIndex].responseTime = data.responseTime;
+              messages.value[msgIndex].tokens = data.tokens;
             } else if (currentEvent === 'error') {
               messages.value[msgIndex].content = 'Error: ' + data.error;
             }

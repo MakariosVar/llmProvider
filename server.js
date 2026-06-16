@@ -140,7 +140,11 @@ app.post('/api/ai/stream', validateGenerateParams, async (req, res) => {
             } else if (payload.type === 'data') {
                 sendEvent('data', { token: payload.token });
             } else if (payload.type === 'end') {
-                sendEvent('end', { content: payload.content });
+                sendEvent('end', { 
+                    content: payload.content, 
+                    responseTime: payload.responseTime, 
+                    tokens: payload.tokens 
+                });
             }
         });
 

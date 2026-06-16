@@ -1,6 +1,11 @@
 /.env
 /node_modules
 status_db.json
+status.db
+status.db-journal
+status.db-wal
+status.db-shm
+status_db.json.backup
 
 !README.md
 *.md

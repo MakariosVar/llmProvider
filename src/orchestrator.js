@@ -216,7 +216,10 @@ class Orchestrator {
 
                 try {
                     logger.info(`Trying provider: ${provider.name}, model: ${model}`);
+                    const startTime = Date.now();
                     const response = await this.callProvider(provider, prompt, systemPrompt, temperature, model, 'text', history);
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
 
                     providerManager.incrementUsage(provider.id);
                     providerManager.updateStatus(provider.id, 'online');
@@ -230,7 +233,9 @@ class Orchestrator {
                     return {
                         provider: provider.name,
                         model: model,
-                        content: response
+                        content: response,
+                        responseTime: responseTime,
+                        tokens: Math.ceil(response.length / 4) // Heuristic
                     };
                 } catch (error) {
                     logger.error(`Provider ${provider.name}, model ${model} failed: ${error.message}`);
@@ -566,21 +571,30 @@ class Orchestrator {
                     if (typeof onData === 'function') onData({ type: 'start', provider: provider.name, model: model });
 
                     let fullContent = '';
+                    const startTime = Date.now();
 
                     await this.callProviderStream(provider, prompt, systemPrompt, temperature, model, (chunk) => {
                         fullContent += chunk;
                         if (typeof onData === 'function') onData({ type: 'data', token: chunk });
                     }, history);
 
+                    const endTime = Date.now();
+                    const responseTime = endTime - startTime;
+
                     providerManager.incrementUsage(provider.id);
                     providerManager.updateStatus(provider.id, 'online');
                     providerManager.updateModelStatus(provider.id, model, 'online');
                     providerManager.clearRateLimit(provider.id, model);
 
-                    // Emit end marker with full content
-                    if (typeof onData === 'function') onData({ type: 'end', content: fullContent });
+                    // Emit end marker with full content and metrics
+                    if (typeof onData === 'function') onData({ 
+                        type: 'end', 
+                        content: fullContent,
+                        responseTime: responseTime,
+                        tokens: Math.ceil(fullContent.length / 4)
+                    });
 
-                    return { provider: provider.name, model: model, content: fullContent };
+                    return { provider: provider.name, model: model, content: fullContent, responseTime: responseTime };
                 } catch (error) {
                     console.error(`Provider ${provider.name}, model ${model} failed (stream):`, error.message || error);
                     lastError = error;
