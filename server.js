@@ -51,6 +51,15 @@ const validateGenerateParams = (req, res, next) => {
 };
 
 // API Endpoints
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === config.admin.username && password === config.admin.password) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
+});
+
 app.post('/api/ai/image', validateGenerateParams, async (req, res) => {
     try {
         const result = await orchestrator.generateImage(req.body);

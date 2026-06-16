@@ -4,6 +4,10 @@ dotenv.config();
 export default {
     port: process.env.PORT || 3000,
     agentUrl: process.env.AGENT_URL || 'http://localhost:3001',
+    admin: {
+        username: process.env.ADMIN_USERNAME || 'admin',
+        password: process.env.ADMIN_PASSWORD || 'admin'
+    },
     providers: {
         groq: {
             name: 'Groq (Free)',
