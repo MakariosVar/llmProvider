@@ -215,9 +215,9 @@ class Orchestrator {
                     }
                 }
 
+                const startTime = Date.now();
                 try {
                     logger.info(`Trying provider: ${provider.name}, model: ${model}`);
-                    const startTime = Date.now();
                     const response = await this.callProvider(provider, prompt, systemPrompt, temperature, model, 'text', history);
                     const endTime = Date.now();
                     const responseTime = endTime - startTime;
@@ -598,6 +598,7 @@ class Orchestrator {
                     }
                 }
 
+                const startTime = Date.now();
                 try {
                     logger.info(`Trying provider (stream): ${provider.name}, model: ${model}`);
 
@@ -605,7 +606,6 @@ class Orchestrator {
                     if (typeof onData === 'function') onData({ type: 'start', provider: provider.name, model: model });
 
                     let fullContent = '';
-                    const startTime = Date.now();
 
                     await this.callProviderStream(provider, prompt, systemPrompt, temperature, model, (chunk) => {
                         fullContent += chunk;

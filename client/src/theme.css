@@ -27,11 +27,7 @@ body {
   background-color: var(--bg-color) !important;
 }
 
-/* Specific UI Element Restyling */
-.bg-indigo-600, .bg-gradient-to-r {
-  background: var(--accent-bg) !important;
-  color: var(--accent-text) !important;
-}
+.bar-fill { background-color: var(--text-color) !important; }
 
 .bg-slate-900\/50, .bg-slate-800, .bg-slate-950\/50 {
   background: var(--bg-color) !important;

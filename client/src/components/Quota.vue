@@ -54,50 +54,49 @@
     <div class="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex gap-4 items-center">
         <div class="text-2xl">💡</div>
         <p class="text-[11px] text-slate-500 leading-snug">
-            Showing only **Verified Live Metrics**. Models without live headers (Gemini, Ollama, etc.) are hidden from this view.
+            <strong>Live:</strong> Metrics extracted from provider response headers. 
+            <strong>Static Config:</strong> No live headers found; falling back to theoretical limits defined in configuration.
         </p>
     </div>
 
     <!-- Provider Table -->
     <div class="overflow-x-auto border-2 border-black rounded-[1.5rem] bg-white shadow-premium-sm">
-      <table class="w-full text-left border-collapse min-w-[800px]">
+      <table class="w-full text-left border-collapse min-w-[900px] table-fixed">
         <thead>
-          <tr class="bg-black text-white text-[10px] font-black uppercase tracking-widest">
+          <tr class="bg-black text-white text-[10px] font-black uppercase tracking-widest text-left border-b border-black/5">
             <th class="p-4 border-r border-white/10">Provider / Model</th>
             <th class="p-4 border-r border-white/10">Status</th>
-            <th class="p-4 border-r border-white/10 w-64">Request Quota</th>
-            <th class="p-4 border-r border-white/10 w-64">Token Quota</th>
-            <th class="p-4">Reset Timer</th>
+            <th class="p-4 border-r border-white/10">Request Quota</th>
+            <th class="p-4 border-r border-white/10"></th>
+            <th class="p-4 border-r border-white/10">Token Quota</th>
+            <th class="p-4 border-r border-white/10">Reset Timer</th>
           </tr>
         </thead>
         <tbody v-for="p in allProviders" :key="p.id" class="border-b-2 border-black last:border-b-0">
           <!-- Provider Header Row -->
           <tr class="bg-slate-50">
-            <td colspan="5" class="p-3">
+            <td class="p-3 border-r border-black/5">
               <div class="flex items-center gap-3">
-                <div class="w-6 h-6 bg-black text-white rounded flex items-center justify-center font-black text-[9px] uppercase shadow-premium-xs">
-                  {{ p.id.substring(0,2) }}
-                </div>
                 <span class="font-black uppercase text-xs tracking-tight">{{ p.name }}</span>
-                <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest px-2 py-0.5 bg-black/5 rounded">P:{{ p.priority }}</span>
               </div>
             </td>
+            <td class="p-4 border-r border-black/5">&nbsp;</td>
           </tr>
           <!-- Model Sub-Rows -->
           <tr v-for="model in (p.models || []).concat(p.imageModels || [])" :key="model" 
             class="border-t border-black/5 hover:bg-indigo-50/30 transition-colors relative group">
             
-            <td class="p-4 pl-8 border-r border-black/5">
-              <div class="font-mono text-[11px] font-black tracking-tight text-slate-700">{{ model }}</div>
+            <td class="p-4 pl-8 border-r border-black/5 truncate">
+              <div class="font-mono text-[11px] font-black tracking-tight text-slate-700 truncate">{{ model }}</div>
             </td>
 
             <td class="p-4 border-r border-black/5">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full" :class="p.modelStatuses?.[model]?.status === 'online' ? 'bg-emerald-500' : 'bg-slate-300'"></span>
-                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest truncate">
                   {{ p.modelStatuses?.[model]?.status || 'unknown' }}
                 </span>
-                <span v-if="p.liveRateLimits?.[model] && isRateLimited(p.liveRateLimits[model])" class="px-2 py-0.5 bg-rose-500 text-white text-[8px] font-black rounded uppercase animate-pulse">
+                <span v-if="p.liveRateLimits?.[model] && isRateLimited(p.liveRateLimits[model])" class="px-2 py-0.5 bg-rose-500 text-white text-[8px] font-black rounded uppercase animate-pulse shrink-0">
                   Throttled
                 </span>
               </div>
@@ -107,54 +106,55 @@
             <td colspan="3" class="p-4 border-r border-black/5">
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Requests Section -->
-                    <div class="space-y-1.5">
+                    <div class="space-y-1.5 overflow-hidden">
                         <div class="flex justify-between items-center text-[10px] font-mono">
                             <span class="font-black">Requests</span>
-                            <span class="font-black">
-                                {{ (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsRemaining ?? '—' }}
+                            <span class="font-black truncate ml-2">
+                                {{ (((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsRemaining || 0)) }}
                                 <span class="opacity-20 mx-0.5">/</span>
                                 {{ (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsLimit ?? p.rpm }}
                             </span>
                         </div>
-                        <div class="h-2 bg-black/5 rounded-full overflow-hidden border border-black p-[1px]">
-                            <div class="h-full rounded-full transition-all duration-500" 
-                                :class="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? getBarColor((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsRemaining / (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit) : 'bg-slate-300'"
-                                :style="{ width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsRemaining / (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit * 100) + '%' : '100%' }"></div>
+                        <div class="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 p-[1px]">
+                            <div class="h-full block rounded-full transition-all duration-500" 
+                                :class="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? 'bar-fill' : 'bg-slate-200'"
+                                :style="{ width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? (((((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit || 1) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsRemaining || 0)) / ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit || 1)) * 100) + '%' : '0%' }"></div>
                         </div>
                     </div>
 
                     <!-- Tokens Section -->
-                    <div class="space-y-1.5">
-                        <div class="flex justify-between items-center text-[10px] font-mono">
-                            <span class="font-black">Tokens</span>
-                            <span class="font-black">
-                                {{ formatNumber((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensRemaining) ?? '—' }}
+                    <div class="space-y-1.5 overflow-hidden">
+                        <div class="flex justify-between items-center text-[10px] font-mono text-[var(--text-color)]">
+                            <span class="font-black opacity-80">Tokens</span>
+                            <span class="font-black truncate ml-2">
+                                {{ formatNumber(((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensRemaining || 0)) }}
                                 <span class="opacity-20 mx-0.5">/</span>
                                 {{ formatNumber((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit) ?? formatNumber(p.daily_limit) }}
                             </span>
                         </div>
-                        <div class="h-2 bg-black/5 rounded-full overflow-hidden border border-black p-[1px]">
-                            <div class="h-full rounded-full transition-all duration-500" 
-                                :class="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? getBarColor((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensRemaining / (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit) : 'bg-slate-300'"
-                                :style="{ width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensRemaining / (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit * 100) + '%' : '100%' }"></div>
+                        <div class="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 p-[1px]">
+                            <div class="h-full block rounded-full transition-all duration-500" 
+                                :class="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? 'bar-fill' : 'bg-slate-200'"
+                                :style="{ width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? (((((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 1) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensRemaining || 0)) / ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 1)) * 100) + '%' : '0%' }"></div>
                         </div>
                     </div>
                 </div>
             </td>
 
             <td class="p-4">
-                <div v-if="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])" class="flex flex-col gap-1">
-                    <div v-if="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsReset" class="text-[9px] font-black text-indigo-500 uppercase flex items-center gap-1.5">
-                      <span class="w-1 h-1 bg-indigo-500 rounded-full animate-ping"></span>
+                <div v-if="p.isLive && (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])" class="flex flex-col gap-1">
+                    <span class="px-2 py-0.5 bg-emerald-500 text-white text-[8px] font-black rounded-md uppercase tracking-widest w-fit mb-1">Live</span>
+                    <div v-if="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsReset" class="text-[9px] font-black text-indigo-500 uppercase flex items-center gap-1.5 truncate">
+                      <span class="w-1 h-1 bg-indigo-500 rounded-full animate-ping shrink-0"></span>
                       Req: {{ formatCountdown((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsReset) }}
                     </div>
-                    <div v-if="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensReset" class="text-[9px] font-black text-emerald-500 uppercase flex items-center gap-1.5">
-                      <span class="w-1 h-1 bg-emerald-500 rounded-full animate-ping"></span>
+                    <div v-if="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensReset" class="text-[9px] font-black text-emerald-500 uppercase flex items-center gap-1.5 truncate">
+                      <span class="w-1 h-1 bg-emerald-500 rounded-full animate-ping shrink-0"></span>
                       Tok: {{ formatCountdown((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensReset) }}
                     </div>
                 </div>
-                <div v-else class="text-[9px] text-slate-300 uppercase italic">
-                    Static
+                <div v-else class="px-2 py-0.5 bg-slate-100 text-slate-400 text-[8px] font-black rounded-md uppercase tracking-widest border border-slate-200 w-fit">
+                    Static Config
                 </div>
             </td>
           </tr>
@@ -262,11 +262,7 @@ const isRateLimited = (limit) => {
     return false
 }
 
-const getBarColor = (percent) => {
-    if (percent < 0.2) return 'bg-rose-500'
-    if (percent < 0.5) return 'bg-amber-500'
-    return 'bg-indigo-500'
-}
+// ... script section helper ...
 
 const formatNumber = (num) => {
     if (!num) return '0'

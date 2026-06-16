@@ -10,7 +10,7 @@ export default {
     },
     providers: {
         groq: {
-            name: 'Groq (Free)',
+            name: 'Groq',
             key: process.env.GROQ_API_KEY,
             models: [
                 'meta-llama/llama-4-scout-17b-16e-instruct', // Verified PASS
@@ -27,7 +27,7 @@ export default {
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
         },
         cerebras: {
-            name: 'Cerebras (Free Tier)',
+            name: 'Cerebras',
             key: process.env.CEREBRAS_API_KEY,
             models: [
                 'gpt-oss-120b',   // Verified PASS
@@ -40,7 +40,7 @@ export default {
             endpoint: 'https://api.cerebras.ai/v1/chat/completions'
         },
         mistral_ai: {
-            name: 'Mistral AI (free-tier)',
+            name: 'Mistral AI',
             key: process.env.MISTRAL_API_KEY || null,
             models: ['mistral-small-latest', 'open-mistral-nemo'],
             rpm: 30,
@@ -69,7 +69,7 @@ export default {
             }
         },
         google_gemini: {
-            name: 'Google Gemini (Free)',
+            name: 'Google Gemini',
             key: process.env.GEMINI_API_KEY,
             models: [
                 'gemini-3.5-flash',       // Latest free stable (May 2026)
