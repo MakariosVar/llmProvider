@@ -177,7 +177,14 @@ app.get('/api/usage/stats', (req, res) => {
 app.get('/api/usage/history', (req, res) => {
     const limit = parseInt(req.query.limit) || 100;
     const offset = parseInt(req.query.offset) || 0;
-    res.json(statusPersistence.getHistory(limit, offset));
+    const filters = {
+        providerId: req.query.providerId,
+        modelName: req.query.modelName,
+        status: req.query.status,
+        sortBy: req.query.sortBy,
+        sortOrder: req.query.sortOrder
+    };
+    res.json(statusPersistence.getHistory(limit, offset, filters));
 });
 
 app.get('/api/usage/pricing', (req, res) => {

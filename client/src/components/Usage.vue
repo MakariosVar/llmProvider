@@ -130,25 +130,60 @@
 
         <!-- Right Column: History Table -->
         <div class="xl:col-span-2 bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl overflow-hidden shadow-xl flex flex-col">
-            <div class="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
-                <h2 class="font-bold text-[var(--text-color)] uppercase text-xs tracking-[0.2em]">Request History</h2>
+            <div class="p-6 border-b border-[var(--border-color)] flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-bold text-[var(--text-color)] uppercase text-xs tracking-[0.2em]">Request History</h2>
+                    <div class="text-[10px] text-[var(--text-color)] opacity-60 font-bold uppercase tracking-widest">Total: {{ totalHistory }}</div>
+                </div>
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-3">
+                    <input v-model="filters.providerId" placeholder="Filter Provider..." class="flex-1 min-w-[120px] bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-bg)] placeholder:opacity-50" />
+                    <input v-model="filters.modelName" placeholder="Filter Model..." class="flex-1 min-w-[120px] bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-bg)] placeholder:opacity-50" />
+                    <select v-model="filters.status" class="bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-bg)]">
+                        <option value="">All Statuses</option>
+                        <option value="success">Success</option>
+                        <option value="error">Error</option>
+                    </select>
+                    
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black opacity-40 uppercase">Sort By:</span>
+                        <select v-model="filters.sortBy" class="bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-bg)]">
+                            <option value="timestamp">Date</option>
+                            <option value="latency">Latency</option>
+                            <option value="input_tokens">Input</option>
+                            <option value="output_tokens">Output</option>
+                            <option value="provider_id">Provider</option>
+                            <option value="model_name">Model</option>
+                        </select>
+                        <select v-model="filters.sortOrder" class="bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-bg)]">
+                            <option value="DESC">DESC</option>
+                            <option value="ASC">ASC</option>
+                        </select>
+                    </div>
+
+                    <button @click="resetFilters" class="px-3 py-2 text-[10px] font-bold uppercase bg-[var(--border-color)]/20 hover:bg-[var(--border-color)]/40 rounded-lg transition-colors">Reset</button>
+                </div>
             </div>
             <div class="flex-1 overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left border-collapse min-w-[600px]">
                     <thead>
                         <tr class="bg-[var(--bg-color)] text-[10px] text-[var(--text-color)] opacity-60 uppercase tracking-widest border-b border-[var(--border-color)]">
-                            <th class="p-4">Time</th>
+                            <th class="p-4">Date</th>
                             <th class="p-4">Provider</th>
                             <th class="p-4">Model</th>
+                            <th class="p-4">Input</th>
+                            <th class="p-4">Output</th>
                             <th class="p-4">Latency</th>
                             <th class="p-4">Status</th>
                         </tr>
                     </thead>
                     <tbody class="text-xs font-mono">
                         <tr v-for="req in history" :key="req.id" class="border-b border-[var(--border-color)]/30 hover:bg-[var(--accent-bg)]/10 transition-colors">
-                            <td class="p-4 text-[var(--text-color)] opacity-60">{{ formatTime(req.timestamp) }}</td>
+                            <td class="p-4 text-[var(--text-color)] opacity-60">{{ formatDate(req.timestamp) }}</td>
                             <td class="p-4 text-[var(--accent-bg)] font-bold uppercase">{{ req.provider_id }}</td>
                             <td class="p-4 text-[var(--text-color)]">{{ req.model_name }}</td>
+                            <td class="p-4 text-[var(--text-color)] opacity-70">{{ (req.input_tokens || 0).toLocaleString() }}</td>
+                            <td class="p-4 text-[var(--text-color)] opacity-70">{{ (req.output_tokens || 0).toLocaleString() }}</td>
                             <td class="p-4">{{ req.latency }}ms</td>
                             <td class="p-4">
                                 <span :class="req.status === 'success' ? 'text-emerald-500' : 'text-rose-500'" class="font-black uppercase">
@@ -156,8 +191,35 @@
                                 </span>
                             </td>
                         </tr>
+                        <tr v-if="history.length === 0">
+                            <td colspan="7" class="p-12 text-center text-[var(--text-color)] opacity-40 uppercase font-bold tracking-widest text-[10px]">
+                                No requests found
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
+            </div>
+            <!-- Pagination -->
+            <div class="p-4 border-t border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-color)]">
+                <div class="text-[10px] text-[var(--text-color)] opacity-60 uppercase font-bold">
+                    Page {{ currentPage }} of {{ Math.max(1, Math.ceil(totalHistory / pageSize)) }}
+                </div>
+                <div class="flex gap-2">
+                    <button 
+                        @click="currentPage--" 
+                        :disabled="currentPage <= 1" 
+                        class="px-4 py-2 text-[10px] font-bold uppercase bg-[var(--border-color)]/20 hover:bg-[var(--border-color)]/40 disabled:opacity-30 rounded-lg transition-colors border border-[var(--border-color)]"
+                    >
+                        Prev
+                    </button>
+                    <button 
+                        @click="currentPage++" 
+                        :disabled="currentPage >= Math.ceil(totalHistory / pageSize)" 
+                        class="px-4 py-2 text-[10px] font-bold uppercase bg-[var(--border-color)]/20 hover:bg-[var(--border-color)]/40 disabled:opacity-30 rounded-lg transition-colors border border-[var(--border-color)]"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -176,6 +238,16 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const stats = ref(null)
 const pricingData = ref([])
 const history = ref([])
+const totalHistory = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const filters = ref({
+    providerId: '',
+    modelName: '',
+    status: '',
+    sortBy: 'timestamp',
+    sortOrder: 'DESC'
+})
 const activeLeaderboard = ref('Tokens')
 const selectedModel = ref('Average')
 const themeStore = useThemeStore()
@@ -331,25 +403,63 @@ watch(() => themeStore.isDark, async () => {
     await nextTick()
 })
 
+const fetchHistory = async () => {
+  try {
+    const params = {
+      limit: pageSize.value,
+      offset: (currentPage.value - 1) * pageSize.value,
+      providerId: filters.value.providerId || undefined,
+      modelName: filters.value.modelName || undefined,
+      status: filters.value.status || undefined,
+      sortBy: filters.value.sortBy,
+      sortOrder: filters.value.sortOrder
+    }
+    const res = await axios.get('/api/usage/history', { params })
+    history.value = res.data.data
+    totalHistory.value = res.data.total
+  } catch (e) {
+    console.error('Failed to fetch history:', e)
+  }
+}
+
 const fetchData = async () => {
   try {
-    const [statsRes, historyRes, pricingRes] = await Promise.all([
+    const [statsRes, pricingRes] = await Promise.all([
       axios.get('/api/usage/stats'),
-      axios.get('/api/usage/history?limit=20'),
       axios.get('/api/usage/pricing')
     ])
     stats.value = statsRes.data
-    history.value = historyRes.data
     pricingData.value = pricingRes.data
+    await fetchHistory()
   } catch (e) {
     console.error('Failed to fetch analytics:', e)
   }
 }
 
-const formatTime = (ts) => {
-  if (!ts) return '-'
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const resetFilters = () => {
+    filters.value = {
+        providerId: '',
+        modelName: '',
+        status: '',
+        sortBy: 'timestamp',
+        sortOrder: 'DESC'
+    }
+    currentPage.value = 1
 }
+
+const formatDate = (ts) => {
+  if (!ts) return '-'
+  return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+watch(filters, () => {
+    currentPage.value = 1
+    fetchHistory()
+}, { deep: true })
+
+watch(currentPage, () => {
+    fetchHistory()
+})
 
 onMounted(() => {
     fetchData()

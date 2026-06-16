@@ -212,13 +212,46 @@ class StatusPersistence {
         }
     }
 
-    getHistory(limit = 100, offset = 0) {
+    getHistory(limit = 100, offset = 0, filters = {}) {
         try {
-            return this.db.prepare('SELECT * FROM request_history ORDER BY timestamp DESC LIMIT ? OFFSET ?')
-                .all(limit, offset);
+            let query = 'SELECT * FROM request_history';
+            let countQuery = 'SELECT COUNT(*) as count FROM request_history';
+            const whereClauses = [];
+            const params = [];
+
+            if (filters.providerId) {
+                whereClauses.push('provider_id LIKE ?');
+                params.push(`%${filters.providerId}%`);
+            }
+            if (filters.modelName) {
+                whereClauses.push('model_name LIKE ?');
+                params.push(`%${filters.modelName}%`);
+            }
+            if (filters.status) {
+                whereClauses.push('status = ?');
+                params.push(filters.status);
+            }
+
+            if (whereClauses.length > 0) {
+                const whereClause = ' WHERE ' + whereClauses.join(' AND ');
+                query += whereClause;
+                countQuery += whereClause;
+            }
+
+            const validSortFields = ['timestamp', 'latency', 'input_tokens', 'output_tokens', 'provider_id', 'model_name'];
+            const sortBy = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'timestamp';
+            const sortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
+            query += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
+            const dataParams = [...params, limit, offset];
+            
+            const data = this.db.prepare(query).all(...dataParams);
+            const total = this.db.prepare(countQuery).get(...params).count;
+
+            return { data, total };
         } catch (error) {
             console.error('Failed to get history from SQLite:', error.message);
-            return [];
+            return { data: [], total: 0 };
         }
     }
 
