@@ -40,6 +40,26 @@ body {
 }
 
 /* v-select Premium Overrides */
+.style-chooser .vs__dropdown-toggle {
+  background-color: var(--bg-color) !important;
+  border: 1px solid var(--accent-text) !important;
+  border-radius: 0.5rem !important;
+  padding: 2px !important;
+}
+
+.style-chooser .vs__selected {
+  color: var(--accent-text) !important;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.style-chooser .vs__search {
+  color: var(--accent-text) !important;
+}
+
 .v-select {
   --vs-controls-color: var(--text-color);
   --vs-border-width: 0px;

@@ -16,15 +16,73 @@
         </div>
       </div>
       <!-- Cost Savings Widget -->
-      <div class="bg-[var(--accent-bg)] border border-[var(--accent-bg)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
-        <span class="text-[10px] font-black text-[var(--accent-text)] opacity-70 uppercase tracking-[0.2em]">Estimated Savings</span>
-        <div class="flex items-baseline gap-2">
-          <span class="text-3xl font-black text-[var(--accent-text)]">${{ estimatedSavings }}</span>
+      <div class="bg-[var(--accent-bg)] border border-[var(--accent-bg)] p-6 rounded-2xl shadow-xl flex flex-col gap-4 col-span-1 lg:col-span-5 min-w-0">
+        <div class="flex justify-between items-center gap-4">
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-black text-[var(--accent-text)] opacity-70 uppercase tracking-[0.2em]">Estimated Savings</span>
+                <span class="text-4xl font-black text-[var(--accent-text)]">${{ estimatedSavings.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 10 }) }}</span>
+            </div>
+            
+            <div class="w-2/3 min-w-[200px] flex flex-col gap-2 text-xs">
+                <div class="flex gap-1 bg-[var(--border-color)]/10 p-1 rounded-lg">
+                    <button v-for="opt in ['Average', 'Highest', 'Cheapest']" :key="opt"
+                        @click="selectedModel = opt"
+                        :class="[
+                            'flex-1 py-1 px-2 rounded-md transition-colors text-xs font-bold truncate',
+                            selectedModel === opt 
+                                ? '!bg-[var(--accent-bg)] !text-[var(--accent-text)]' 
+                                : 'text-[var(--accent-text)] hover:bg-[var(--accent-text)]/10'
+                        ]">
+                        {{ opt }}
+                        <span v-if="opt !== 'Average'" class="opacity-70 text-[10px] block truncate">
+                            {{ opt === 'Highest' ? highestModel : cheapestModel }}
+                        </span>
+                    </button>
+                </div>
+                <div class="w-full">
+                    <v-select
+                      v-model="selectedModel"
+                      :options="modelNames"
+                      placeholder="Or select specific model..."
+                      :clearable="true"
+                      :searchable="true"
+                      class="style-chooser text-xs font-bold bg-white rounded-lg"
+                    >
+                    </v-select>
+                </div>
+            </div>
         </div>
-        <select v-model="selectedModel" class="mt-2 p-2 bg-[var(--accent-text)]/10 text-[var(--accent-text)] border border-[var(--accent-text)]/30 rounded-lg text-xs font-bold focus:outline-none">
-           <option value="all" class="bg-[var(--bg-color)] text-[var(--text-color)]">All Models</option>
-           <option v-for="m in modelNames" :key="m" :value="m" class="bg-[var(--bg-color)] text-[var(--text-color)]">{{ m }}</option>
-        </select>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-[var(--accent-text)] font-mono border-collapse">
+                <thead>
+                    <tr class="text-left border-b border-[var(--accent-text)]/20">
+                        <th class="py-2 px-1">Metric</th>
+                        <th class="py-2 px-1">Value</th>
+                        <th class="py-2 px-1">Price/1M</th>
+                        <th class="py-2 px-1">Cost</th>
+                    </tr>
+                </thead>
+                <tbody v-if="pricingDetails">
+                    <tr>
+                        <td class="py-2 px-1">Input Tokens</td>
+                        <td class="py-2 px-1">{{ pricingDetails.inputTokens.toLocaleString() }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails.promptPrice.toFixed(6) }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails.inputCost.toFixed(8) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-2 px-1">Output Tokens</td>
+                        <td class="py-2 px-1">{{ pricingDetails.outputTokens.toLocaleString() }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails.completionPrice.toFixed(6) }}</td>
+                        <td class="py-2 px-1">${{ pricingDetails.outputCost.toFixed(8) }}</td>
+                    </tr>
+                    <tr class="border-t border-[var(--accent-text)]/20 font-bold">
+                        <td class="py-2 px-1" colspan="3">Total Saved</td>
+                        <td class="py-2 px-1">${{ estimatedSavings.toFixed(8) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
       </div>
     </div>
 
@@ -114,13 +172,24 @@ const stats = ref(null)
 const pricingData = ref([])
 const history = ref([])
 const activeLeaderboard = ref('Tokens')
-const selectedModel = ref('all')
+const selectedModel = ref('Average')
 const themeStore = useThemeStore()
 const chartKey = ref(0) 
 
+const highestModel = computed(() => {
+    if (pricingData.value.length === 0) return 'N/A'
+    return pricingData.value.reduce((a, b) => (Number(a.prompt_price) + Number(a.completion_price)) > (Number(b.prompt_price) + Number(b.completion_price)) ? a : b).model_name
+})
+
+const cheapestModel = computed(() => {
+    if (pricingData.value.length === 0) return 'N/A'
+    const valid = pricingData.value.filter(p => p.prompt_price > 0 || p.completion_price > 0)
+    if (valid.length === 0) return 'N/A'
+    return valid.reduce((a, b) => (Number(a.prompt_price) + Number(a.completion_price)) < (Number(b.prompt_price) + Number(b.completion_price)) ? a : b).model_name
+})
+
 const modelNames = computed(() => {
-    if (!stats.value || !stats.value.models) return []
-    return [...new Set(stats.value.models.map(m => m.model_name))]
+    return pricingData.value.map(p => p.model_name)
 })
 
 const summaryStats = computed(() => {
@@ -132,39 +201,95 @@ const summaryStats = computed(() => {
     { label: 'Total Executions', value: (s.totalRequests || 0).toLocaleString() },
     { label: 'Success Rate', value: rate, suffix: '%' },
     { label: 'Avg Latency', value: s.avgLatency || 0, suffix: 'ms' },
-    { label: 'Total Tokens', value: (s.totalTokens || 0).toLocaleString(), suffix: 'est.' }
+    { label: 'Input Tokens', value: (s.totalInputTokens || 0).toLocaleString(), suffix: 'est.' },
+    { label: 'Output Tokens', value: (s.totalOutputTokens || 0).toLocaleString(), suffix: 'est.' }
   ]
 })
 
-const estimatedSavings = computed(() => {
-    if (!stats.value || !stats.value.models || pricingData.value.length === 0) return '0.00'
+const pricingDetails = computed(() => {
+    if (!stats.value || !stats.value.summary || pricingData.value.length === 0) return null
     
-    let totalSavings = 0
-    const models = stats.value.models
+    let targetModelName = selectedModel.value
+    if (selectedModel.value === 'Highest') targetModelName = highestModel.value
+    if (selectedModel.value === 'Cheapest') targetModelName = cheapestModel.value
     
-    for (const m of models) {
-        if (selectedModel.value !== 'all' && m.model_name !== selectedModel.value) continue
+    if (selectedModel.value === 'Average') {
+        // Calculate global average prices from all models in pricingData
+        const validPricing = pricingData.value.filter(p => p.prompt_price > 0 && p.completion_price > 0)
         
-        const priceInfo = pricingData.value.find(p => p.model_name === m.model_name)
-        if (priceInfo) {
-            // Price is per 1M tokens.
-            const costPerToken = (priceInfo.prompt_price + priceInfo.completion_price) / 2 / 1000000
-            // Savings is 50% of the cost of running on a paid provider
-            totalSavings += m.total_tokens * costPerToken * 0.5
+        let totalPromptPrice = 0
+        let totalCompletionPrice = 0
+        
+        for (const p of validPricing) {
+            totalPromptPrice += Number(p.prompt_price)
+            totalCompletionPrice += Number(p.completion_price)
+        }
+        
+        const avgPromptPrice = validPricing.length > 0 ? (totalPromptPrice / validPricing.length) : 0
+        const avgCompletionPrice = validPricing.length > 0 ? (totalCompletionPrice / validPricing.length) : 0
+        
+        const inputTokens = stats.value.summary.totalInputTokens || 0
+        const outputTokens = stats.value.summary.totalOutputTokens || 0
+        
+        return {
+            isAggregate: true,
+            inputTokens,
+            outputTokens,
+            promptPrice: avgPromptPrice * 1000000,
+            completionPrice: avgCompletionPrice * 1000000,
+            inputCost: inputTokens * avgPromptPrice,
+            outputCost: outputTokens * avgCompletionPrice
+        }
+    } else {
+        const priceInfo = pricingData.value.find(p => p.model_name === targetModelName)
+        if (!priceInfo) return null
+
+        const inputTokens = stats.value.summary.totalInputTokens || 0
+        const outputTokens = stats.value.summary.totalOutputTokens || 0
+        const promptPrice = Number(priceInfo.prompt_price) || 0
+        const completionPrice = Number(priceInfo.completion_price) || 0
+        
+        return {
+            isAggregate: false,
+            inputTokens,
+            outputTokens,
+            promptPrice: promptPrice * 1000000,
+            completionPrice: completionPrice * 1000000,
+            inputCost: inputTokens * promptPrice,
+            outputCost: outputTokens * completionPrice
         }
     }
-    return totalSavings.toFixed(2)
 })
+
+const estimatedSavings = computed(() => {
+    if (pricingDetails.value) {
+        return (pricingDetails.value.inputCost + pricingDetails.value.outputCost)
+    }
+    
+    // Fallback for 'Average'
+    if (!stats.value || !stats.value.summary || pricingData.value.length === 0) return 0
+    let totalSavings = 0
+    for (const m of stats.value.models || []) {
+        const priceInfo = pricingData.value.find(p => p.model_name === m.model_name)
+        if (priceInfo) {
+            const inputCost = (m.total_input_tokens || 0) * Number(priceInfo.prompt_price) / 1000000
+            const outputCost = (m.total_output_tokens || 0) * Number(priceInfo.completion_price) / 1000000
+            totalSavings += (inputCost + outputCost)
+        }
+    }
+    return totalSavings
+})
+
 const leaderboardData = computed(() => {
     if (!stats.value || !stats.value.models) return []
     const m = stats.value.models
     if (activeLeaderboard.value === 'Tokens') {
-        return m.slice().sort((a, b) => b.total_tokens - a.total_tokens).slice(0, 5).map(m => ({name: m.model_name, value: (m.total_tokens || 0)}))
+        return m.slice().sort((a, b) => (b.total_input_tokens + b.total_output_tokens) - (a.total_input_tokens + a.total_output_tokens)).slice(0, 5).map(m => ({name: m.model_name, value: ((m.total_input_tokens || 0) + (m.total_output_tokens || 0)).toLocaleString()}))
     }
     if (activeLeaderboard.value === 'Requests') {
-        return m.slice().sort((a, b) => b.total - a.total).slice(0, 5).map(m => ({name: m.model_name, value: (m.total || 0)}))
+        return m.slice().sort((a, b) => b.total - a.total).slice(0, 5).map(m => ({name: m.model_name, value: (m.total || 0).toLocaleString()}))
     }
-    return m.slice().sort((a, b) => b.success - a.success).slice(0, 5).map(m => ({name: m.model_name, value: (m.success || 0)}))
+    return m.slice().sort((a, b) => b.success - a.success).slice(0, 5).map(m => ({name: m.model_name, value: (m.success || 0).toLocaleString()}))
 })
 
 const chartData = computed(() => {

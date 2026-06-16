@@ -228,7 +228,8 @@ class Orchestrator {
                     // If it succeeds, clear any potential rate limit (though it shouldn't be there if we checked)
                     providerManager.clearRateLimit(provider.id, model);
 
-                    const tokens = Math.ceil(response.length / 4);
+                    const inputTokens = Math.ceil(prompt.length / 4);
+                    const outputTokens = Math.ceil(response.length / 4);
                     // Record success in circuit breaker
                     circuitBreaker.recordSuccess(provider.id);
 
@@ -237,7 +238,8 @@ class Orchestrator {
                         modelName: model,
                         status: 'success',
                         latency: responseTime,
-                        tokens: tokens,
+                        inputTokens: inputTokens,
+                        outputTokens: outputTokens,
                         type: 'text'
                     });
 
@@ -246,7 +248,8 @@ class Orchestrator {
                         model: model,
                         content: response,
                         responseTime: responseTime,
-                        tokens: tokens // Heuristic
+                        inputTokens,
+                        outputTokens
                     };
                 } catch (error) {
                     const responseTime = Date.now() - startTime;
@@ -255,7 +258,8 @@ class Orchestrator {
                         modelName: model,
                         status: 'error',
                         latency: responseTime,
-                        tokens: 0,
+                        inputTokens: 0,
+                        outputTokens: 0,
                         type: 'text',
                         errorMessage: error.message
                     });
@@ -601,7 +605,8 @@ class Orchestrator {
 
                     const endTime = Date.now();
                     const responseTime = endTime - startTime;
-                    const tokens = Math.ceil(fullContent.length / 4);
+                    const inputTokens = Math.ceil(prompt.length / 4);
+                    const outputTokens = Math.ceil(fullContent.length / 4);
 
                     providerManager.incrementUsage(provider.id);
                     providerManager.updateStatus(provider.id, 'online');
@@ -613,7 +618,8 @@ class Orchestrator {
                         modelName: model,
                         status: 'success',
                         latency: responseTime,
-                        tokens: tokens,
+                        inputTokens: inputTokens,
+                        outputTokens: outputTokens,
                         type: 'stream'
                     });
 
@@ -622,7 +628,8 @@ class Orchestrator {
                         type: 'end', 
                         content: fullContent,
                         responseTime: responseTime,
-                        tokens: tokens
+                        inputTokens: inputTokens,
+                        outputTokens: outputTokens
                     });
 
                     return { provider: provider.name, model: model, content: fullContent, responseTime: responseTime };
@@ -633,7 +640,8 @@ class Orchestrator {
                         modelName: model,
                         status: 'error',
                         latency: responseTime,
-                        tokens: 0,
+                        inputTokens: 0,
+                        outputTokens: 0,
                         type: 'stream',
                         errorMessage: error.message
                     });

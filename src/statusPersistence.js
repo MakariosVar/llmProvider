@@ -24,6 +24,14 @@ class StatusPersistence {
             )
         `);
 
+        // Check if old tokens column exists
+        const tableInfo = this.db.prepare("PRAGMA table_info(request_history)").all();
+        const hasTokensColumn = tableInfo.some(col => col.name === 'tokens');
+        
+        if (hasTokensColumn) {
+             this.db.exec("ALTER TABLE request_history RENAME TO request_history_old");
+        }
+        
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS request_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,12 +39,23 @@ class StatusPersistence {
                 model_name TEXT,
                 status TEXT,
                 latency INTEGER,
-                tokens INTEGER,
+                input_tokens INTEGER,
+                output_tokens INTEGER,
                 type TEXT,
                 timestamp INTEGER,
                 error_message TEXT
             )
         `);
+
+        if (hasTokensColumn) {
+            try {
+                this.db.exec(`INSERT INTO request_history (id, provider_id, model_name, status, latency, input_tokens, output_tokens, type, timestamp, error_message) 
+                              SELECT id, provider_id, model_name, status, latency, tokens, 0, type, timestamp, error_message FROM request_history_old`);
+                this.db.exec("DROP TABLE request_history_old");
+            } catch (e) {
+                console.error("Migration failed", e);
+            }
+        }
 
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS model_pricing (
@@ -128,14 +147,14 @@ class StatusPersistence {
         }
     }
 
-    logRequest({ providerId, modelName, status, latency, tokens, type, errorMessage = null }) {
-        console.log("logRequest called:", { providerId, modelName, status });
+    logRequest({ providerId, modelName, status, latency, inputTokens, outputTokens, type, errorMessage = null }) {
+        console.log("logRequest called:", { providerId, modelName, status, inputTokens, outputTokens });
         try {
             const insert = this.db.prepare(`
-                INSERT INTO request_history (provider_id, model_name, status, latency, tokens, type, timestamp, error_message)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO request_history (provider_id, model_name, status, latency, input_tokens, output_tokens, type, timestamp, error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
-            insert.run(providerId, modelName, status, latency, tokens, type, Date.now(), errorMessage);
+            insert.run(providerId, modelName, status, latency, inputTokens, outputTokens, type, Date.now(), errorMessage);
         } catch (error) {
             console.error('Failed to log request in SQLite:', error.message);
         }
@@ -145,7 +164,8 @@ class StatusPersistence {
         try {
             const totalRequests = this.db.prepare('SELECT COUNT(*) as count FROM request_history').get().count;
             const successRequests = this.db.prepare("SELECT COUNT(*) as count FROM request_history WHERE status = 'success'").get().count;
-            const totalTokens = this.db.prepare('SELECT SUM(tokens) as count FROM request_history').get().count || 0;
+            const totalInputTokens = this.db.prepare('SELECT SUM(input_tokens) as count FROM request_history').get().count || 0;
+            const totalOutputTokens = this.db.prepare('SELECT SUM(output_tokens) as count FROM request_history').get().count || 0;
             const avgLatency = this.db.prepare("SELECT AVG(latency) as avg FROM request_history WHERE status = 'success'").get().avg || 0;
 
             const providerStats = this.db.prepare(`
@@ -154,7 +174,8 @@ class StatusPersistence {
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
                     AVG(latency) as avg_latency,
-                    SUM(tokens) as total_tokens
+                    SUM(input_tokens) as total_input_tokens,
+                    SUM(output_tokens) as total_output_tokens
                 FROM request_history 
                 GROUP BY provider_id
             `).all();
@@ -166,7 +187,8 @@ class StatusPersistence {
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
                     AVG(latency) as avg_latency,
-                    SUM(tokens) as total_tokens
+                    SUM(input_tokens) as total_input_tokens,
+                    SUM(output_tokens) as total_output_tokens
                 FROM request_history 
                 GROUP BY provider_id, model_name
             `).all();
@@ -175,7 +197,8 @@ class StatusPersistence {
                 summary: {
                     totalRequests,
                     successRequests,
-                    totalTokens,
+                    totalInputTokens,
+                    totalOutputTokens,
                     avgLatency: Math.round(avgLatency)
                 },
                 providers: providerStats,
