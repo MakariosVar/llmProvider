@@ -1,13 +1,26 @@
-/* Absolute High-Contrast B&W Theme */
+/* Theme Variables */
 :root {
   --bg-color: #ffffff;
   --text-color: #000000;
+  --border-color: #000000;
+  --accent-bg: #000000;
+  --accent-text: #ffffff;
+  --shadow-color: rgba(0,0,0,1);
+}
+
+.dark {
+  --bg-color: #000000;
+  --text-color: #ffffff;
+  --border-color: #ffffff;
+  --accent-bg: #ffffff;
+  --accent-text: #000000;
+  --shadow-color: rgba(255,255,255,1);
 }
 
 * {
   background-color: transparent !important;
   color: var(--text-color) !important;
-  border-color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
 }
 
 body {
@@ -16,44 +29,44 @@ body {
 
 /* Specific UI Element Restyling */
 .bg-indigo-600, .bg-gradient-to-r {
-  background: #000000 !important;
-  color: #ffffff !important;
+  background: var(--accent-bg) !important;
+  color: var(--accent-text) !important;
 }
 
 .bg-slate-900\/50, .bg-slate-800, .bg-slate-950\/50 {
-  background: #ffffff !important;
-  border: 2px solid #000000 !important;
-  color: #000000 !important;
+  background: var(--bg-color) !important;
+  border: 2px solid var(--border-color) !important;
+  color: var(--text-color) !important;
 }
 
 /* v-select Premium Overrides */
 .v-select {
-  --vs-controls-color: #000000;
+  --vs-controls-color: var(--text-color);
   --vs-border-width: 0px;
   --vs-border-radius: 1rem;
-  --vs-selected-bg: #ffffff;
-  --vs-selected-color: #000000;
-  --vs-search-input-color: #000000;
-  --vs-dropdown-bg: #ffffff;
-  --vs-dropdown-color: #000000;
-  --vs-dropdown-option-bg: #ffffff;
-  --vs-dropdown-option-color: #000000;
-  --vs-dropdown-option--active-bg: #000000;
-  --vs-dropdown-option--active-color: #ffffff;
+  --vs-selected-bg: var(--bg-color);
+  --vs-selected-color: var(--text-color);
+  --vs-search-input-color: var(--text-color);
+  --vs-dropdown-bg: var(--bg-color);
+  --vs-dropdown-color: var(--text-color);
+  --vs-dropdown-option-bg: var(--bg-color);
+  --vs-dropdown-option-color: var(--text-color);
+  --vs-dropdown-option--active-bg: var(--accent-bg);
+  --vs-dropdown-option--active-color: var(--accent-text);
   min-width: 150px;
 }
 
 .v-select .vs__dropdown-toggle {
-  border: 2px solid #000000 !important;
+  border: 2px solid var(--border-color) !important;
   border-radius: 1rem !important;
   padding: 4px;
-  background-color: #ffffff !important;
+  background-color: var(--bg-color) !important;
   height: 44px;
 }
 
 .v-select .vs__selected {
   font-weight: 700 !important;
-  color: #000000 !important;
+  color: var(--text-color) !important;
   border: none !important;
 }
 
@@ -66,12 +79,12 @@ body {
 
 /* Dropdown menu when appended to body */
 .vs__dropdown-menu {
-  border: 2px solid #000000 !important;
+  border: 2px solid var(--border-color) !important;
   border-radius: 1rem !important;
-  background-color: #ffffff !important;
-  color: #000000 !important;
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
   z-index: 99999 !important;
-  box-shadow: 6px 6px 0px 0px rgba(0,0,0,1) !important;
+  box-shadow: 6px 6px 0px 0px var(--shadow-color) !important;
   max-height: 300px;
   overflow-y: auto;
   min-width: 300px !important;

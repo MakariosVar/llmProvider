@@ -51,8 +51,8 @@
         <div class="flex-1">
           <textarea v-model="prompt" @keydown.enter.exact.prevent="generate" class="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 text-white placeholder-slate-600 focus:border-indigo-500 outline-none h-24 resize-none transition-all text-lg font-medium" placeholder="Describe the image you want to create..."></textarea>
         </div>
-        <button @click="generate" :disabled="loading || !prompt" class="h-24 px-12 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-2 min-w-[200px] shadow-indigo-500/20 shadow-lg group">
-          <span v-if="loading" class="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></span>
+        <button @click="generate" :disabled="loading || !prompt" class="h-24 px-12 bg-[var(--accent-bg)] hover:opacity-80 text-[var(--accent-text)] rounded-2xl font-black text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center gap-2 min-w-[200px] shadow-lg group">
+          <span v-if="loading" class="w-8 h-8 border-4 border-[var(--accent-text)]/30 border-t-[var(--accent-text)] rounded-full animate-spin"></span>
           <template v-else>
             <span class="group-hover:scale-110 transition-transform">GENERATE</span>
             <span class="text-[10px] opacity-60 tracking-[0.2em]">ENTER</span>

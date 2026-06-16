@@ -1,19 +1,22 @@
 <template>
-  <div class="min-h-screen bg-[#020617] text-slate-100 font-sans selection:bg-indigo-500/30">
+  <div class="min-h-screen bg-[var(--bg-color)] text-[var(--text-color)] font-sans selection:bg-indigo-500/30">
     <!-- Navbar -->
-    <nav v-if="authStore.isAuthenticated" class="sticky top-0 z-50 border-b border-slate-800 bg-[#020617]/80 backdrop-blur-md">
+    <nav v-if="authStore.isAuthenticated" class="sticky top-0 z-50 border-b border-[var(--border-color)] bg-[var(--bg-color)]/80 backdrop-blur-md">
       <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="font-bold text-lg tracking-tight">LLM Provider</span>
         </div>
-        <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-          <router-link v-for="item in navItems" :key="item.path" :to="item.path" 
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-            :class="$route.path === item.path ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'">
-            {{ item.name }}
-          </router-link>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-1 bg-[var(--bg-color)] p-1 rounded-xl border border-[var(--border-color)]">
+            <router-link v-for="item in navItems" :key="item.path" :to="item.path" 
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+              :class="$route.path === item.path ? 'bg-[var(--accent-bg)] text-[var(--accent-text)] shadow-lg' : 'text-[var(--text-color)] hover:text-[var(--accent-bg)]'">
+              {{ item.name }}
+            </router-link>
+          </div>
+          <ThemeToggle />
+          <button @click="logout" class="text-[var(--text-color)] hover:text-rose-400 transition-colors text-sm font-medium">Logout</button>
         </div>
-        <button @click="logout" class="text-slate-400 hover:text-rose-400 transition-colors text-sm font-medium">Logout</button>
       </div>
     </nav>
 
@@ -30,6 +33,7 @@
 <script setup>
 import { useAuthStore } from './store'
 import { useRouter } from 'vue-router'
+import ThemeToggle from './components/ThemeToggle.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
