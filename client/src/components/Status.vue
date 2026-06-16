@@ -20,6 +20,14 @@
         <div class="text-sm font-bold uppercase tracking-widest text-slate-500">Active Models</div>
         <div class="text-4xl font-black mt-2">{{ activeModelsCount }}</div>
       </div>
+      <div class="p-6 bg-white border-2 border-black rounded-[1.5rem] shadow-premium">
+        <div class="text-sm font-bold uppercase tracking-widest text-emerald-600">Healthy</div>
+        <div class="text-4xl font-black mt-2 text-emerald-600">{{ healthyModelsCount }}</div>
+      </div>
+      <div class="p-6 bg-white border-2 border-black rounded-[1.5rem] shadow-premium">
+        <div class="text-sm font-bold uppercase tracking-widest text-rose-600">Failing</div>
+        <div class="text-4xl font-black mt-2 text-rose-600">{{ failingModelsCount }}</div>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -29,20 +37,17 @@
             <h3 class="text-lg font-bold">{{ p.name }}</h3>
             <span class="text-xs font-mono uppercase tracking-wider">{{ p.id }}</span>
           </div>
-          <div class="text-black">
-            <svg v-if="p.status === 'online'" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-            <span v-else-if="p.status === 'error'" class="font-black text-xl">!</span>
-            <span v-else class="text-xs font-bold uppercase">{{ p.status }}</span>
-          </div>
+          <div class="w-4 h-4 rounded-full" :class="getProviderStatusClass(p)"></div>
         </div>
         
         <div class="space-y-3">
           <div v-for="model in p.models" :key="model" class="flex items-center justify-between p-3 border-2 border-black rounded-[1rem]">
             <span class="text-sm font-mono">{{ model }}</span>
-            <span class="text-xs font-bold uppercase px-2 py-1 border-2 border-black rounded-[0.5rem]" :class="getModelStatusClass(p.modelStatuses?.[model])">
-              {{ p.modelStatuses?.[model]?.status || 'unknown' }}
+            <span class="text-xs font-bold uppercase px-2 py-1 border-2 rounded-[0.5rem]"
+                  :class="getModelStatusClass(p.modelStatuses?.[model])">
+              {{ (p.modelStatuses?.[model]?.status || 'unknown').toUpperCase() }}
             </span>
-          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -61,27 +66,36 @@ socket.on('status_update', (data) => {
   providers.value = data
 })
 
-const getStatusClass = (status) => ({
-  'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]': status === 'online',
-  'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]': status === 'error',
-  'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]': status === 'rate_limited',
-  'bg-slate-500': status !== 'online' && status !== 'error' && status !== 'rate_limited'
-})
-
 const activeModelsCount = computed(() => {
     return providers.value.reduce((acc, p) => acc + (p.models ? p.models.length : 0), 0)
 })
 
-const getModelStatusClass = (mStatus) => {
-  const status = mStatus?.status
-  return {
-    'text-emerald-400 border-emerald-900/50 bg-emerald-950/20': status === 'online',
-    'text-rose-400 border-rose-900/50 bg-rose-950/20': status === 'error',
-    'text-amber-400 border-amber-900/50 bg-amber-950/20': status === 'rate_limited',
-    'text-slate-400 border-slate-700 bg-slate-800': !status || status === 'unknown'
-  }
+const healthyModelsCount = computed(() => {
+    return providers.value.reduce((acc, p) => 
+        acc + Object.values(p.modelStatuses || {}).filter(m => m.status === 'online').length, 0)
+})
+
+const failingModelsCount = computed(() => {
+    return providers.value.reduce((acc, p) => 
+        acc + Object.values(p.modelStatuses || {}).filter(m => m.status === 'error').length, 0)
+})
+
+const getProviderStatusClass = (p) => {
+    const statuses = Object.values(p.modelStatuses || {})
+    if (statuses.some(m => m.status === 'error')) return 'bg-red-500' // Changed to red
+    if (statuses.some(m => m.status === 'rate_limited')) return 'bg-yellow-500' // Changed to yellow
+    if (statuses.every(m => m.status === 'online')) return 'bg-green-500' // Changed to green
+    return 'bg-slate-500'
 }
 
+const getModelStatusClass = (mStatus) => {
+  const status = (mStatus?.status || '').toLowerCase()
+
+  if (status === 'online') return 'status-online'
+  if (status === 'error') return 'status-error'
+  if (status === 'rate_limited') return 'status-rate-limited'
+  return 'status-default'
+}
 const checkStatus = async () => {
   loading.value = true
   await fetch('/api/status/check', { method: 'POST' })

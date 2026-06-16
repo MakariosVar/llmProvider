@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+.status-online {
+  background-color: #dcfce7 !important;
+  border-color: #22c55e !important;
+  color: #166534 !important;
+}
+
+.status-error {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #991b1b !important;
+}
+
+.status-rate-limited {
+  background-color: #fef3c7 !important;
+  border-color: #eab308 !important;
+  color: #92400e !important;
+}
+
+.status-default {
+  background-color: #f1f5f9 !important;
+  border-color: #64748b !important;
+  color: #334155 !important;
+}

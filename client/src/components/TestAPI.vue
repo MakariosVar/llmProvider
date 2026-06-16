@@ -180,7 +180,9 @@ const getStatusColor = (status) => {
 const endpoints = [
   { method: 'POST', path: '/api/ai' },
   { method: 'POST', path: '/api/ai/stream' },
-  { method: 'POST', path: '/api/ai/image' }
+  { method: 'POST', path: '/api/ai/image' },
+  { method: 'GET', path: '/api/usage/stats' },
+  { method: 'GET', path: '/api/usage/history' }
 ]
 
 const languages = [

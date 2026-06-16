@@ -65,6 +65,12 @@ Access the UI at `http://localhost:3000` to monitor status, chat, compare models
 
 ### API Integration
 
+#### GET `/api/usage/stats`
+Get system usage statistics (total requests, success rate, etc.).
+
+#### GET `/api/usage/history`
+Get recent request history. Query parameters: `limit` (default 100), `offset` (default 0).
+
 #### POST `/api/ai/stream` (Recommended)
 Streaming text generation with conversation memory.
 

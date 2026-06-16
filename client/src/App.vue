@@ -39,6 +39,7 @@ const navItems = [
   { name: 'Command Center', path: '/chat' },
   { name: 'Model Compare', path: '/compare' },
   { name: 'Imagination', path: '/images' },
+  { name: 'Analytics', path: '/usage' },
   { name: 'Test API', path: '/test-api' }
 ]
 

@@ -8,6 +8,7 @@ import config from './src/config.js';
 import orchestrator from './src/orchestrator.js';
 import healthChecker from './src/healthChecker.js';
 import providerManager from './src/providerManager.js';
+import statusPersistence from './src/statusPersistence.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,10 +20,7 @@ const httpServer = createServer(app);
 app.use(express.static(path.join(__dirname, 'client/dist')));
 console.log(`Serving SPA from: ${path.join(__dirname, 'client/dist')}`);
 
-// Catch-all route to serve index.html for SPA routing
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
-});
+// API routes are defined below...
 
 // CORS configuration - currently permissive for development
 // TODO: In production, restrict to specific allowed origins
@@ -171,6 +169,16 @@ app.get('/api/status', (req, res) => {
     });
 });
 
+app.get('/api/usage/stats', (req, res) => {
+    res.json(statusPersistence.getStats());
+});
+
+app.get('/api/usage/history', (req, res) => {
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+    res.json(statusPersistence.getHistory(limit, offset));
+});
+
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
@@ -254,6 +262,9 @@ io.on('connection', (socket) => {
 // Start Server
 const PORT = config.port;
 httpServer.listen(PORT, async () => {
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+});
     log(`Server started on port ${PORT}`);
 
     // Start Health Checker

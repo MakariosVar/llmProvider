@@ -23,6 +23,20 @@ class StatusPersistence {
                 PRIMARY KEY (provider_id, model_name)
             )
         `);
+
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS request_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                provider_id TEXT,
+                model_name TEXT,
+                status TEXT,
+                latency INTEGER,
+                tokens INTEGER,
+                type TEXT,
+                timestamp INTEGER,
+                error_message TEXT
+            )
+        `);
     }
 
     migrateFromJson() {
@@ -72,6 +86,75 @@ class StatusPersistence {
             insert.run(providerId, modelName, status, Date.now(), error ? String(error) : null);
         } catch (error) {
             console.error('Failed to update model status in SQLite:', error.message);
+        }
+    }
+
+    logRequest({ providerId, modelName, status, latency, tokens, type, errorMessage = null }) {
+        console.log("logRequest called:", { providerId, modelName, status });
+        try {
+            const insert = this.db.prepare(`
+                INSERT INTO request_history (provider_id, model_name, status, latency, tokens, type, timestamp, error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            insert.run(providerId, modelName, status, latency, tokens, type, Date.now(), errorMessage);
+        } catch (error) {
+            console.error('Failed to log request in SQLite:', error.message);
+        }
+    }
+
+    getStats() {
+        try {
+            const totalRequests = this.db.prepare('SELECT COUNT(*) as count FROM request_history').get().count;
+            const successRequests = this.db.prepare("SELECT COUNT(*) as count FROM request_history WHERE status = 'success'").get().count;
+            const totalTokens = this.db.prepare('SELECT SUM(tokens) as count FROM request_history').get().count || 0;
+            const avgLatency = this.db.prepare("SELECT AVG(latency) as avg FROM request_history WHERE status = 'success'").get().avg || 0;
+
+            const providerStats = this.db.prepare(`
+                SELECT 
+                    provider_id, 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
+                    AVG(latency) as avg_latency,
+                    SUM(tokens) as total_tokens
+                FROM request_history 
+                GROUP BY provider_id
+            `).all();
+
+            const modelStats = this.db.prepare(`
+                SELECT 
+                    provider_id,
+                    model_name,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success,
+                    AVG(latency) as avg_latency,
+                    SUM(tokens) as total_tokens
+                FROM request_history 
+                GROUP BY provider_id, model_name
+            `).all();
+
+            return {
+                summary: {
+                    totalRequests,
+                    successRequests,
+                    totalTokens,
+                    avgLatency: Math.round(avgLatency)
+                },
+                providers: providerStats,
+                models: modelStats
+            };
+        } catch (error) {
+            console.error('Failed to get stats from SQLite:', error.message);
+            return null;
+        }
+    }
+
+    getHistory(limit = 100, offset = 0) {
+        try {
+            return this.db.prepare('SELECT * FROM request_history ORDER BY timestamp DESC LIMIT ? OFFSET ?')
+                .all(limit, offset);
+        } catch (error) {
+            console.error('Failed to get history from SQLite:', error.message);
+            return [];
         }
     }
 

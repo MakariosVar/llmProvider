@@ -2,6 +2,7 @@ import axios from 'axios';
 import http from 'http';
 import https from 'https';
 import providerManager from './providerManager.js';
+import statusPersistence from './statusPersistence.js';
 import winston from 'winston';
 import CircuitBreaker from './circuitBreaker.js';
 import { AllProvidersFailedError } from './errors.js';
@@ -227,17 +228,37 @@ class Orchestrator {
                     // If it succeeds, clear any potential rate limit (though it shouldn't be there if we checked)
                     providerManager.clearRateLimit(provider.id, model);
 
+                    const tokens = Math.ceil(response.length / 4);
                     // Record success in circuit breaker
                     circuitBreaker.recordSuccess(provider.id);
+
+                    statusPersistence.logRequest({
+                        providerId: provider.id,
+                        modelName: model,
+                        status: 'success',
+                        latency: responseTime,
+                        tokens: tokens,
+                        type: 'text'
+                    });
 
                     return {
                         provider: provider.name,
                         model: model,
                         content: response,
                         responseTime: responseTime,
-                        tokens: Math.ceil(response.length / 4) // Heuristic
+                        tokens: tokens // Heuristic
                     };
                 } catch (error) {
+                    const responseTime = Date.now() - startTime;
+                    statusPersistence.logRequest({
+                        providerId: provider.id,
+                        modelName: model,
+                        status: 'error',
+                        latency: responseTime,
+                        tokens: 0,
+                        type: 'text',
+                        errorMessage: error.message
+                    });
                     logger.error(`Provider ${provider.name}, model ${model} failed: ${error.message}`);
                     if (error.response && error.response.data) {
                         logger.error(`Error details: ${JSON.stringify(error.response.data)}`);
@@ -580,22 +601,42 @@ class Orchestrator {
 
                     const endTime = Date.now();
                     const responseTime = endTime - startTime;
+                    const tokens = Math.ceil(fullContent.length / 4);
 
                     providerManager.incrementUsage(provider.id);
                     providerManager.updateStatus(provider.id, 'online');
                     providerManager.updateModelStatus(provider.id, model, 'online');
                     providerManager.clearRateLimit(provider.id, model);
 
+                    statusPersistence.logRequest({
+                        providerId: provider.id,
+                        modelName: model,
+                        status: 'success',
+                        latency: responseTime,
+                        tokens: tokens,
+                        type: 'stream'
+                    });
+
                     // Emit end marker with full content and metrics
                     if (typeof onData === 'function') onData({ 
                         type: 'end', 
                         content: fullContent,
                         responseTime: responseTime,
-                        tokens: Math.ceil(fullContent.length / 4)
+                        tokens: tokens
                     });
 
                     return { provider: provider.name, model: model, content: fullContent, responseTime: responseTime };
                 } catch (error) {
+                    const responseTime = Date.now() - startTime;
+                    statusPersistence.logRequest({
+                        providerId: provider.id,
+                        modelName: model,
+                        status: 'error',
+                        latency: responseTime,
+                        tokens: 0,
+                        type: 'stream',
+                        errorMessage: error.message
+                    });
                     console.error(`Provider ${provider.name}, model ${model} failed (stream):`, error.message || error);
                     lastError = error;
                     allErrors.push(error); // Collect the error
