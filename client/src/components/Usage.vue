@@ -39,10 +39,14 @@
             <!-- Tabbed Leaderboards -->
             <div class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl shadow-xl overflow-hidden">
                 <div class="flex border-b border-[var(--border-color)]">
-                    <button v-for="tab in ['TPM', 'Requests', 'Success']" :key="tab" 
+                    <button v-for="tab in ['Tokens', 'Requests', 'Success']" :key="tab" 
                         @click="activeLeaderboard = tab"
-                        :class="activeLeaderboard === tab ? 'bg-[var(--accent-bg)] text-[var(--accent-text)]' : 'text-[var(--text-color)] hover:bg-[var(--border-color)]/20'"
-                        class="flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors">
+                        :class="[
+                            'flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors',
+                            activeLeaderboard === tab 
+                                ? '!bg-[var(--accent-bg)] !text-[var(--accent-text)]' 
+                                : 'text-[var(--text-color)] hover:bg-[var(--border-color)]/20'
+                        ]">
                         {{ tab }}
                     </button>
                 </div>
@@ -104,7 +108,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 const stats = ref(null)
 const history = ref([])
-const activeLeaderboard = ref('TPM')
+const activeLeaderboard = ref('Tokens')
 const themeStore = useThemeStore()
 const chartKey = ref(0) 
 
@@ -130,8 +134,8 @@ const estimatedSavings = computed(() => {
 const leaderboardData = computed(() => {
     if (!stats.value || !stats.value.models) return []
     const m = stats.value.models
-    if (activeLeaderboard.value === 'TPM') {
-        return m.slice().sort((a, b) => b.tpm - a.tpm).slice(0, 5).map(m => ({name: m.model_name, value: (m.tpm || 0)}))
+    if (activeLeaderboard.value === 'Tokens') {
+        return m.slice().sort((a, b) => b.total_tokens - a.total_tokens).slice(0, 5).map(m => ({name: m.model_name, value: (m.total_tokens || 0)}))
     }
     if (activeLeaderboard.value === 'Requests') {
         return m.slice().sort((a, b) => b.total - a.total).slice(0, 5).map(m => ({name: m.model_name, value: (m.total || 0)}))
