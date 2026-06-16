@@ -23,7 +23,7 @@
 
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Provider (Optional)</label>
-              <v-select v-model="selectedProvider" :options="providers.map(p => ({label: p.name, code: p.id, status: p.status}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="bg-white rounded-lg" :append-to-body="true">
+              <v-select v-model="selectedProvider" :options="filteredProviders.map(p => ({label: p.name, code: p.id, status: p.status}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="bg-white rounded-lg" :append-to-body="true">
                 <template #option="{ label, status }">
                   <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
@@ -84,13 +84,19 @@
       <!-- Code & Documentation Panel -->
       <div class="lg:col-span-2 space-y-6">
         <!-- Result Window (Conditional) -->
-        <div v-if="liveResult" class="bg-black border-2 border-indigo-500/50 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+        <div v-if="liveResult || liveImageUrl" class="bg-black border-2 border-indigo-500/50 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
           <div class="bg-indigo-900/20 border-b border-indigo-500/30 p-3 flex justify-between items-center">
             <span class="text-xs font-bold text-indigo-300 uppercase tracking-widest">Live API Response</span>
-            <button @click="liveResult = ''" class="text-indigo-400 hover:text-white text-xs">Clear</button>
+            <button @click="clearResult" class="text-indigo-400 hover:text-white text-xs">Clear</button>
           </div>
-          <div class="p-6 font-mono text-sm text-emerald-400 overflow-y-auto max-h-[300px] whitespace-pre-wrap">
-            {{ liveResult }}
+          <div class="p-6 font-mono text-sm text-emerald-400 overflow-y-auto max-h-[400px] whitespace-pre-wrap flex flex-col items-center">
+            <template v-if="liveImageUrl">
+                <img :src="liveImageUrl" class="max-w-full rounded-lg shadow-lg border border-slate-800 mb-4" />
+                <div class="text-xs text-slate-500 break-all">{{ liveImageUrl }}</div>
+            </template>
+            <template v-else>
+                {{ liveResult }}
+            </template>
           </div>
         </div>
 
@@ -153,6 +159,7 @@ const providers = ref([])
 const activeLang = ref('curl')
 const copied = ref(false)
 const liveResult = ref('')
+const liveImageUrl = ref('')
 const isRunning = ref(false)
 
 const socket = io()
@@ -182,10 +189,22 @@ const languages = [
   { id: 'py', name: 'Python (Requests)' }
 ]
 
+const filteredProviders = computed(() => {
+  if (selectedType.value === 'image') {
+    return providers.value.filter(p => p.type === 'image' || (p.imageModels && p.imageModels.length > 0))
+  }
+  return providers.value.filter(p => p.type !== 'image')
+})
+
 const availableModelsList = computed(() => {
   const p = providers.value.find(p => p.id === selectedProvider.value)
   if (!p) return []
-  return (p.models || []).map(m => {
+  
+  const models = selectedType.value === 'image' 
+    ? (p.imageModels || (p.type === 'image' ? p.models : []))
+    : (p.models || [])
+
+  return (models || []).map(m => {
     const mStatus = p.modelStatuses?.[m] || { status: 'unknown' }
     return { label: m, code: m, status: mStatus.status }
   })
@@ -273,9 +292,15 @@ print(response.json())`
   return ''
 })
 
+const clearResult = () => {
+    liveResult.value = ''
+    liveImageUrl.value = ''
+}
+
 const runTest = async () => {
   if (isRunning.value) return
   isRunning.value = true
+  clearResult()
   liveResult.value = 'Connecting...'
 
   const path = selectedType.value === 'stream' ? '/api/ai/stream' : (selectedType.value === 'image' ? '/api/ai/image' : '/api/ai')
@@ -293,7 +318,7 @@ const runTest = async () => {
     })
 
     if (!response.ok) {
-      const err = await response.json()
+      const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
       throw new Error(err.error || `HTTP ${response.status}`)
     }
 
@@ -323,7 +348,11 @@ const runTest = async () => {
       }
     } else {
       const data = await response.json()
-      liveResult.value = JSON.stringify(data, null, 2)
+      if (selectedType.value === 'image') {
+        liveImageUrl.value = data.imageUrl
+      } else {
+        liveResult.value = JSON.stringify(data, null, 2)
+      }
     }
   } catch (err) {
     liveResult.value = `Error: ${err.message}`
@@ -337,6 +366,16 @@ const copyCode = () => {
   copied.value = true
   setTimeout(() => copied.value = false, 2000)
 }
+
+watch(selectedType, () => {
+    selectedProvider.value = ''
+    selectedModel.value = ''
+    if (selectedType.value === 'image') {
+        testPrompt.value = 'A futuristic cybernetic city, high detail, 8k'
+    } else {
+        testPrompt.value = 'What is the capital of France? (answer in max 10 words)'
+    }
+})
 
 watch(selectedProvider, () => {
   selectedModel.value = ''
