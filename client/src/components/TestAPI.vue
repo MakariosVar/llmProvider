@@ -148,7 +148,7 @@ import io from 'socket.io-client'
 const selectedType = ref('text')
 const selectedProvider = ref('')
 const selectedModel = ref('')
-const testPrompt = ref('What is the capital of France?')
+const testPrompt = ref('What is the capital of France? (answer in max 10 words)')
 const providers = ref([])
 const activeLang = ref('curl')
 const copied = ref(false)

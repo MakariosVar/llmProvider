@@ -14,7 +14,7 @@ export default {
             ],
             rpm: 15,                      // Rate limits for free tier
             daily_limit: 1500,
-            priority: 2,
+            priority: 5,
             heavy_usage: 95,
             endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
         },
@@ -28,7 +28,7 @@ export default {
             ],
             rpm: 30,
             daily_limit: 1000000, // 1M tokens/day free
-            priority: 1,
+            priority: 2,
             heavy_usage: 92,
             endpoint: 'https://api.cerebras.ai/v1/chat/completions'
         },
@@ -46,7 +46,7 @@ export default {
             ],
             rpm: 60,
             daily_limit: 2000,
-            priority: 3,
+            priority: 1,
             heavy_usage: 90,
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
         },
@@ -58,7 +58,7 @@ export default {
             ],
             rpm: 20,
             daily_limit: 200,
-            priority: 9,
+            priority: 8,
             heavy_usage: 70,
             endpoint: 'https://openrouter.ai/api/v1/chat/completions'
         },
@@ -74,7 +74,7 @@ export default {
             ],
             rpm: 30,
             daily_limit: 10000,
-            priority: 4,
+            priority: 9,
             heavy_usage: 80,
             endpoint: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/{model}',
             imageModels: [
@@ -93,7 +93,7 @@ export default {
             ],
             rpm: 15,
             daily_limit: 1000,
-            priority: 5,
+            priority: 4,
             heavy_usage: 78,
             endpoint: 'https://models.inference.ai.azure.com/chat/completions',
             headers: {
@@ -107,7 +107,7 @@ export default {
             models: ['command-a-plus-05-2026', 'command-a-03-2025'],
             rpm: 20,
             daily_limit: 1000,
-            priority: 6,
+            priority: 7,
             heavy_usage: 72,
             endpoint: 'https://api.cohere.ai/v2/chat'
         },
@@ -117,7 +117,7 @@ export default {
             models: ['meta-llama/Meta-Llama-3-8B-Instruct', 'Qwen/Qwen2.5-7B-Instruct'],
             rpm: 5,
             daily_limit: 30,
-            priority: 7,
+            priority: 6,
             heavy_usage: 60,
             endpoint: 'https://router.huggingface.co/v1/chat/completions'
         },
@@ -131,7 +131,7 @@ export default {
             ],
             rpm: 10,
             daily_limit: 300,
-            priority: 12,
+            priority: 10,
             heavy_usage: 72,
             endpoint: 'https://api.novita.ai/v3/openai/chat/completions'
         },
@@ -139,9 +139,9 @@ export default {
             name: 'Mistral AI (free-tier)',
             key: process.env.MISTRAL_API_KEY || null,
             models: ['mistral-small-latest', 'open-mistral-nemo'],
-            rpm: 5,
-            daily_limit: 100,
-            priority: 14,
+            rpm: 30,
+            daily_limit: 1000000000,
+            priority: 3,
             heavy_usage: 65,
             endpoint: 'https://api.mistral.ai/v1/chat/completions'
         },
