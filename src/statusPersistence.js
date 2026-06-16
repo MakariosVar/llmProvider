@@ -1,55 +1,127 @@
-import fs from 'fs';
+import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
-const DB_FILE = 'status_db.json';
+const DB_FILE = 'status.db';
+const JSON_DB_FILE = 'status_db.json';
 
 class StatusPersistence {
     constructor() {
-        this.filePath = path.resolve(DB_FILE);
-        this.data = {};
-        this.load();
+        this.db = new Database(path.resolve(DB_FILE));
+        this.init();
+        this.migrateFromJson();
     }
 
-    load() {
-        try {
-            if (fs.existsSync(this.filePath)) {
-                const fileContent = fs.readFileSync(this.filePath, 'utf-8');
-                this.data = JSON.parse(fileContent);
+    init() {
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS model_status (
+                provider_id TEXT,
+                model_name TEXT,
+                status TEXT,
+                last_updated INTEGER,
+                error TEXT,
+                PRIMARY KEY (provider_id, model_name)
+            )
+        `);
+    }
+
+    migrateFromJson() {
+        const jsonPath = path.resolve(JSON_DB_FILE);
+        if (fs.existsSync(jsonPath)) {
+            try {
+                const fileContent = fs.readFileSync(jsonPath, 'utf-8');
+                const data = JSON.parse(fileContent);
+                
+                const insert = this.db.prepare(`
+                    INSERT OR REPLACE INTO model_status (provider_id, model_name, status, last_updated, error)
+                    VALUES (?, ?, ?, ?, ?)
+                `);
+
+                const transaction = this.db.transaction((data) => {
+                    for (const providerId in data) {
+                        for (const modelName in data[providerId]) {
+                            const entry = data[providerId][modelName];
+                            insert.run(
+                                providerId,
+                                modelName,
+                                entry.status,
+                                entry.lastUpdated,
+                                entry.error || null
+                            );
+                        }
+                    }
+                });
+
+                transaction(data);
+                console.log('Successfully migrated data from JSON to SQLite');
+                
+                // Rename JSON file to backup
+                fs.renameSync(jsonPath, jsonPath + '.backup');
+            } catch (error) {
+                console.error('Failed to migrate status DB from JSON:', error.message);
             }
-        } catch (error) {
-            console.error('Failed to load status DB:', error.message);
-            this.data = {};
-        }
-    }
-
-    save() {
-        try {
-            fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2));
-        } catch (error) {
-            console.error('Failed to save status DB:', error.message);
         }
     }
 
     updateModelStatus(providerId, modelName, status, error = null) {
-        if (!this.data[providerId]) {
-            this.data[providerId] = {};
+        try {
+            const insert = this.db.prepare(`
+                INSERT OR REPLACE INTO model_status (provider_id, model_name, status, last_updated, error)
+                VALUES (?, ?, ?, ?, ?)
+            `);
+            insert.run(providerId, modelName, status, Date.now(), error ? String(error) : null);
+        } catch (error) {
+            console.error('Failed to update model status in SQLite:', error.message);
         }
-
-        this.data[providerId][modelName] = {
-            status,
-            lastUpdated: Date.now(),
-            error: error ? String(error) : null
-        };
-
-        this.save();
     }
 
     get(providerId, modelName) {
-        return this.data[providerId]?.[modelName] || null;
+        try {
+            const row = this.db.prepare('SELECT * FROM model_status WHERE provider_id = ? AND model_name = ?')
+                .get(providerId, modelName);
+            
+            if (row) {
+                return {
+                    status: row.status,
+                    lastUpdated: row.last_updated,
+                    error: row.error
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Failed to get model status from SQLite:', error.message);
+            return null;
+        }
     }
 
     getAll() {
-        return this.data;
+        try {
+            const rows = this.db.prepare('SELECT * FROM model_status').all();
+            const result = {};
+            
+            for (const row of rows) {
+                if (!result[row.provider_id]) {
+                    result[row.provider_id] = {};
+                }
+                result[row.provider_id][row.model_name] = {
+                    status: row.status,
+                    lastUpdated: row.last_updated,
+                    error: row.error
+                };
+            }
+            return result;
+        } catch (error) {
+            console.error('Failed to get all model statuses from SQLite:', error.message);
+            return {};
+        }
+    }
+
+    load() {
+        // No-op for SQLite as it's always "loaded"
+    }
+
+    close() {
+        this.db.close();
     }
 }
 
