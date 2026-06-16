@@ -7,6 +7,7 @@ class ProviderManager {
         this.usage = {};
         this.modelStatus = {}; // Track status per model: { providerId: { modelName: { status, lastError, lastSuccess } } }
         this.rateLimits = {}; // Track rate limits: { providerId: { modelName: expiryTimestamp } }
+        this.liveRateLimits = {}; // Track live rate limits: { providerId: { modelName: { requestsRemaining, tokensRemaining, ... } } }
         this.initialize();
 
         // Cleanup expired rate limits every 5 minutes
@@ -14,6 +15,21 @@ class ProviderManager {
     }
 
     initialize() {
+        // Load live rate limits from DB
+        const persistedLiveLimits = statusPersistence.getAllLiveRateLimits();
+        for (const limit of persistedLiveLimits) {
+            if (!this.liveRateLimits[limit.provider_id]) this.liveRateLimits[limit.provider_id] = {};
+            this.liveRateLimits[limit.provider_id][limit.model_name] = {
+                requestsLimit: limit.requests_limit,
+                requestsRemaining: limit.requests_remaining,
+                requestsReset: limit.requests_reset,
+                tokensLimit: limit.tokens_limit,
+                tokensRemaining: limit.tokens_remaining,
+                tokensReset: limit.tokens_reset,
+                lastUpdated: limit.last_updated
+            };
+        }
+
         for (const [key, providerConfig] of Object.entries(config.providers)) {
             // Compute a heuristic heavy_usage score (0-100) based on model names and configured priority
             const heavyUsageScore = this.computeHeavyUsage(providerConfig);
@@ -112,9 +128,135 @@ class ProviderManager {
         return Object.values(this.providers).map(p => {
             return {
                 ...p,
-                modelStatuses: this.modelStatus[p.id] || {}
+                modelStatuses: this.modelStatus[p.id] || {},
+                liveRateLimits: this.liveRateLimits[p.id] || {}
             };
         });
+    }
+
+    updateLiveRateLimits(providerId, modelName, headers) {
+        if (!headers) return;
+
+        const data = {
+            providerId,
+            modelName,
+            requestsLimit: null,
+            requestsRemaining: null,
+            requestsReset: null,
+            tokensLimit: null,
+            tokensRemaining: null,
+            tokensReset: null
+        };
+
+        // Normalize Headers (case-insensitive)
+        const h = {};
+        for (const key in headers) {
+            h[key.toLowerCase()] = headers[key];
+        }
+
+        // 1. Groq & OpenAI & OpenRouter (Standard x-ratelimit-*)
+        if (h['x-ratelimit-limit-requests']) data.requestsLimit = parseInt(h['x-ratelimit-limit-requests']);
+        if (h['x-ratelimit-remaining-requests']) data.requestsRemaining = parseInt(h['x-ratelimit-remaining-requests']);
+        if (h['x-ratelimit-reset-requests']) {
+            data.requestsReset = this.parseResetTime(h['x-ratelimit-reset-requests']);
+        }
+
+        if (h['x-ratelimit-limit-tokens']) data.tokensLimit = parseInt(h['x-ratelimit-limit-tokens']);
+        if (h['x-ratelimit-remaining-tokens']) data.tokensRemaining = parseInt(h['x-ratelimit-remaining-tokens']);
+        if (h['x-ratelimit-reset-tokens']) {
+            data.tokensReset = this.parseResetTime(h['x-ratelimit-reset-tokens']);
+        }
+
+        // 2. Anthropic (anthropic-ratelimit-*)
+        if (h['anthropic-ratelimit-requests-limit']) data.requestsLimit = parseInt(h['anthropic-ratelimit-requests-limit']);
+        if (h['anthropic-ratelimit-requests-remaining']) data.requestsRemaining = parseInt(h['anthropic-ratelimit-requests-remaining']);
+        if (h['anthropic-ratelimit-requests-reset']) {
+            data.requestsReset = new Date(h['anthropic-ratelimit-requests-reset']).getTime();
+        }
+
+        if (h['anthropic-ratelimit-tokens-limit']) data.tokensLimit = parseInt(h['anthropic-ratelimit-tokens-limit']);
+        if (h['anthropic-ratelimit-tokens-remaining']) data.tokensRemaining = parseInt(h['anthropic-ratelimit-tokens-remaining']);
+        if (h['anthropic-ratelimit-tokens-reset']) {
+            data.tokensReset = new Date(h['anthropic-ratelimit-tokens-reset']).getTime();
+        }
+
+        // 3. GitHub Models (Specific Unix epoch seconds)
+        if (h['x-ratelimit-resource'] === 'models' || h['x-ratelimit-type']?.includes('Model')) {
+            if (h['x-ratelimit-limit']) data.requestsLimit = parseInt(h['x-ratelimit-limit']);
+            if (h['x-ratelimit-remaining']) data.requestsRemaining = parseInt(h['x-ratelimit-remaining']);
+            if (h['x-ratelimit-reset']) {
+                const val = parseInt(h['x-ratelimit-reset']);
+                data.requestsReset = val * 1000; // Unix epoch seconds to ms
+            }
+        }
+
+        // 4. Mistral AI (x-ratelimit-*-minute)
+        if (h['x-ratelimit-limit-requests-minute']) data.requestsLimit = parseInt(h['x-ratelimit-limit-requests-minute']);
+        if (h['x-ratelimit-remaining-requests-minute']) data.requestsRemaining = parseInt(h['x-ratelimit-remaining-requests-minute']);
+        if (h['x-ratelimit-limit-tokens-minute']) data.tokensLimit = parseInt(h['x-ratelimit-limit-tokens-minute']);
+        if (h['x-ratelimit-remaining-tokens-minute']) data.tokensRemaining = parseInt(h['x-ratelimit-remaining-tokens-minute']);
+
+        // 5. OpenRouter fallback/additional
+        if (!data.requestsLimit && h['x-ratelimit-limit']) data.requestsLimit = parseInt(h['x-ratelimit-limit']);
+        if (!data.requestsRemaining && h['x-ratelimit-remaining']) data.requestsRemaining = parseInt(h['x-ratelimit-remaining']);
+        if (!data.requestsReset && h['x-ratelimit-reset']) {
+            data.requestsReset = this.parseResetTime(h['x-ratelimit-reset']);
+        }
+
+        // Update if we got meaningful remaining data
+        if (data.requestsRemaining !== null || data.tokensRemaining !== null) {
+            if (!this.liveRateLimits[providerId]) this.liveRateLimits[providerId] = {};
+            
+            // Store as model-specific
+            this.liveRateLimits[providerId][modelName] = {
+                ...data,
+                lastUpdated: Date.now(),
+                isProviderWide: false
+            };
+            statusPersistence.upsertLiveRateLimit({ ...data, providerId, modelName });
+
+            // If we have a generic header set, store as providerWide for fallback
+            // This is a simple heuristic: if requestsLimit is very high or matches known provider patterns
+            if (this.isLikelyProviderWide(h)) {
+                this.liveRateLimits[providerId]['providerWide'] = {
+                    ...data,
+                    lastUpdated: Date.now(),
+                    isProviderWide: true
+                };
+                statusPersistence.upsertLiveRateLimit({ ...data, providerId, modelName: 'providerWide' });
+            }
+        }
+    }
+
+    isLikelyProviderWide(h) {
+        // Heuristic: If headers are present without model-specific context
+        return !!(h['x-ratelimit-limit-requests'] || h['anthropic-ratelimit-requests-limit']);
+    }
+
+    parseResetTime(resetStr) {
+        if (!resetStr) return null;
+        if (!isNaN(resetStr)) {
+            const val = parseFloat(resetStr);
+            // If it's a small number, assume seconds from now
+            if (val < 1000000) return Date.now() + (val * 1000);
+            // If it's a timestamp
+            return val * 1000;
+        }
+
+        // Parse "1s", "1m2s", "1h3m", "10ms"
+        let totalMs = 0;
+        const hMatch = resetStr.match(/(\d+)h/);
+        const mMatch = resetStr.match(/(\d+)m/);
+        const sMatch = resetStr.match(/([\d.]+)s/);
+        const msMatch = resetStr.match(/([\d.]+)ms/);
+
+        if (hMatch) totalMs += parseInt(hMatch[1]) * 3600000;
+        if (mMatch) totalMs += parseInt(mMatch[1]) * 60000;
+        if (sMatch && !msMatch) totalMs += parseFloat(sMatch[1]) * 1000;
+        if (msMatch) totalMs += parseFloat(msMatch[1]);
+
+        if (totalMs > 0) return Date.now() + totalMs;
+        return null;
     }
 
     updateStatus(id, status, latency = 0) {
@@ -228,7 +370,25 @@ class ProviderManager {
 
     // Rate Limit Caching
     isRateLimited(providerId, modelName) {
-        // Check in-memory cache first
+        // Check live rate limits first
+        const liveModel = this.liveRateLimits[providerId]?.[modelName];
+        const liveProvider = this.liveRateLimits[providerId]?.['providerWide'];
+        
+        const live = liveModel || liveProvider; // Use model-specific if exists, otherwise provider-wide
+        
+        if (live) {
+            const now = Date.now();
+            // Check requests
+            if (live.requestsRemaining === 0 && live.requestsReset && now < live.requestsReset) {
+                return true;
+            }
+            // Check tokens
+            if (live.tokensRemaining === 0 && live.tokensReset && now < live.tokensReset) {
+                return true;
+            }
+        }
+
+        // Check in-memory cache (the 5-min cooldown)
         if (this.rateLimits[providerId] && this.rateLimits[providerId][modelName]) {
             const expiry = this.rateLimits[providerId][modelName];
             if (Date.now() <= expiry) return true;

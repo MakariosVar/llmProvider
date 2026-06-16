@@ -67,6 +67,57 @@ class StatusPersistence {
                 updated_at INTEGER
             )
         `);
+
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS live_rate_limits (
+                provider_id TEXT,
+                model_name TEXT,
+                requests_limit INTEGER,
+                requests_remaining INTEGER,
+                requests_reset INTEGER,
+                tokens_limit INTEGER,
+                tokens_remaining INTEGER,
+                tokens_reset INTEGER,
+                last_updated INTEGER,
+                PRIMARY KEY (provider_id, model_name)
+            )
+        `);
+    }
+
+    upsertLiveRateLimit(data) {
+        try {
+            const insert = this.db.prepare(`
+                INSERT OR REPLACE INTO live_rate_limits (
+                    provider_id, model_name, 
+                    requests_limit, requests_remaining, requests_reset,
+                    tokens_limit, tokens_remaining, tokens_reset,
+                    last_updated
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            insert.run(
+                data.providerId,
+                data.modelName,
+                data.requestsLimit || null,
+                data.requestsRemaining || null,
+                data.requestsReset || null,
+                data.tokensLimit || null,
+                data.tokensRemaining || null,
+                data.tokensReset || null,
+                Date.now()
+            );
+        } catch (error) {
+            console.error('Failed to upsert live rate limit in SQLite:', error.message);
+        }
+    }
+
+    getAllLiveRateLimits() {
+        try {
+            return this.db.prepare('SELECT * FROM live_rate_limits').all();
+        } catch (error) {
+            console.error('Failed to get all live rate limits from SQLite:', error.message);
+            return [];
+        }
     }
 
     upsertPricing(modelName, promptPrice, completionPrice, rating) {

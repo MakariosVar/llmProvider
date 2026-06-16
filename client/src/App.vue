@@ -44,6 +44,7 @@ const navItems = [
   { name: 'Model Compare', path: '/compare' },
   { name: 'Imagination', path: '/images' },
   { name: 'Analytics', path: '/usage' },
+  { name: 'Quota', path: '/quota' },
   { name: 'Test API', path: '/test-api' }
 ]
 

@@ -6,6 +6,7 @@ import Compare from './components/Compare.vue'
 import Images from './components/Images.vue'
 import TestAPI from './components/TestAPI.vue'
 import Usage from './components/Usage.vue'
+import Quota from './components/Quota.vue'
 import NotFound from './components/NotFound.vue'
 import { useAuthStore } from './store'
 
@@ -18,6 +19,7 @@ const routes = [
   { path: '/images', component: Images, meta: { requiresAuth: true } },
   { path: '/test-api', component: TestAPI, meta: { requiresAuth: true } },
   { path: '/usage', component: Usage, meta: { requiresAuth: true } },
+  { path: '/quota', component: Quota, meta: { requiresAuth: true } },
   { path: '/:pathMatch(.*)*', component: NotFound }
 ]
 

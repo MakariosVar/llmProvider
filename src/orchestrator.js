@@ -285,6 +285,9 @@ class Orchestrator {
 
                     if (isRateLimit) {
                         logger.warn(`Marking ${provider.name} / ${model} as rate limited for 5 mins.`);
+                        if (error.response?.headers) {
+                            providerManager.updateLiveRateLimits(provider.id, model, error.response.headers);
+                        }
                         providerManager.markRateLimited(provider.id, model);
                     } else if (isTransientError) {
                         // Don't mark as permanent error for transient issues - just log
@@ -384,6 +387,7 @@ class Orchestrator {
                 }
             };
             const response = await axiosInstance.post(url, data);
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
             return response.data.candidates[0].content.parts[0].text;
         }
 
@@ -429,6 +433,7 @@ class Orchestrator {
             }
 
             const response = await axiosInstance.post(url, data, { headers });
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
             return response.data.content[0].text;
         }
 
@@ -455,6 +460,7 @@ class Orchestrator {
             }
 
             const response = await axiosInstance.post(url, data, { headers });
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
             return response.data.message.content[0].text;
         }
 
@@ -473,6 +479,7 @@ class Orchestrator {
                 max_length: 500
             };
             const response = await axiosInstance.post(url, data, { headers });
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
             return response.data.generated_text;
         }
 
@@ -490,6 +497,7 @@ class Orchestrator {
                 message: fullText
             };
             const response = await axiosInstance.post(url, data, { headers });
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
             if (response.data.status === 'success') {
                 return response.data.response;
             } else {
@@ -525,6 +533,7 @@ class Orchestrator {
         // }
 
         const response = await axiosInstance.post(url, data, { headers });
+        providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
 
         // Parse response
         if (response.data.choices && response.data.choices.length > 0) {
@@ -656,6 +665,9 @@ class Orchestrator {
 
                     if (isRateLimit) {
                         console.log(`Marking ${provider.name} / ${model} as rate limited for 5 mins.`);
+                        if (error.response?.headers) {
+                            providerManager.updateLiveRateLimits(provider.id, model, error.response.headers);
+                        }
                         providerManager.markRateLimited(provider.id, model);
                     } else {
                         providerManager.updateModelStatus(provider.id, model, 'error', error.message || String(error));
@@ -711,6 +723,8 @@ class Orchestrator {
             const response = await axiosInstance.post(url, data, {
                 responseType: 'stream'
             });
+
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
 
             const stream = response.data;
             stream.on('data', (chunk) => {
@@ -781,6 +795,8 @@ class Orchestrator {
                 responseType: 'stream'
             });
 
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
+
             const stream = response.data;
             stream.on('data', (chunk) => {
                 const lines = chunk.toString().split('\n');
@@ -847,6 +863,8 @@ class Orchestrator {
             headers,
             responseType: 'stream'
         });
+
+        providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
 
         const stream = response.data;
         stream.on('data', (chunk) => {

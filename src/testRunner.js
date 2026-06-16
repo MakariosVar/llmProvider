@@ -2,6 +2,7 @@ import axios from 'axios';
 import providerManager from './providerManager.js';
 import orchestrator from './orchestrator.js';
 import healthChecker from './healthChecker.js';
+import statusPersistence from './statusPersistence.js';
 
 // Simple arg/env parsing to allow running a subset of providers to avoid
 // hitting API limits. Usage examples:
@@ -88,15 +89,25 @@ async function runTests() {
             const { name: model, type } = modelObj;
             process.stdout.write(`  ${model} (${type})... `);
             const startTime = Date.now();
+            const testPrompt = type === 'image' ? 'a small square' : 'hi';
             try {
                 // Simple test for this specific model
-                const testPrompt = type === 'image' ? 'a small square' : 'hi';
                 const response = await orchestrator.callProvider(provider, testPrompt, null, 0.7, model, type);
                 const responseTime = Date.now() - startTime;
                 if (response) {
                     console.log(`PASS (${responseTime}ms)`);
                     passed++;
                     providerManager.updateModelStatus(provider.id, model, 'online');
+                    
+                    statusPersistence.logRequest({
+                        providerId: provider.id,
+                        modelName: model,
+                        status: 'success',
+                        latency: responseTime,
+                        inputTokens: Math.ceil(testPrompt.length / 4),
+                        outputTokens: type === 'image' ? 0 : Math.ceil(String(response).length / 4),
+                        type: 'test'
+                    });
                 } else {
                     throw new Error('Empty response');
                 }
@@ -130,6 +141,21 @@ async function runTests() {
 
                 // Special handling for APIFreeLLM 500 errors (often transient or upstream issue)
                 const isApiFreeLlm500 = provider.id === 'apifreellm' && error.response?.status === 500;
+
+                const status = (isRateLimited || isCachedRateLimit || isBillingIssue || isQuotaIssue || isApiFreeLlm500 || isConfigIssue) ? 'error' : 'error';
+                // Note: We use 'error' status for log history even for warnings, 
+                // but we can pass the specific message.
+
+                statusPersistence.logRequest({
+                    providerId: provider.id,
+                    modelName: model,
+                    status: 'error',
+                    latency: responseTime,
+                    inputTokens: Math.ceil(testPrompt.length / 4),
+                    outputTokens: 0,
+                    type: 'test',
+                    errorMessage: error.message
+                });
 
                 if (isRateLimited || isCachedRateLimit || isBillingIssue || isQuotaIssue || isApiFreeLlm500) {
                     const reason = isCachedRateLimit ? 'Rate limited (cached 5m)' :
