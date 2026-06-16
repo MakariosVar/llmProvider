@@ -97,7 +97,46 @@
         <div class="xl:col-span-1 space-y-8">
             <!-- Chart -->
             <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-[var(--text-color)] mb-4">Usage Over Time</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-[var(--text-color)]">Usage Analysis</h2>
+                    <div class="flex gap-1 bg-[var(--border-color)]/10 p-1 rounded-lg">
+                        <button v-for="interval in ['minute', 'hour', 'day', 'month']" :key="interval"
+                            @click="chartFilters.interval = interval"
+                            :class="[
+                                'px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors',
+                                chartFilters.interval === interval 
+                                    ? 'bg-[var(--accent-bg)] text-[var(--accent-text)]' 
+                                    : 'text-[var(--text-color)] opacity-60 hover:opacity-100'
+                            ]">
+                            {{ interval === 'minute' ? '1H' : interval === 'hour' ? '24H' : interval === 'day' ? '7D' : 'Monthly' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mb-6">
+                    <button v-for="metric in ['requests', 'tokens', 'latency']" :key="metric"
+                        @click="chartFilters.metric = metric"
+                        :class="[
+                            'flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all',
+                            chartFilters.metric === metric 
+                                ? 'bg-[var(--accent-bg)] border-[var(--accent-bg)] text-[var(--accent-text)]' 
+                                : 'border-[var(--border-color)] text-[var(--text-color)] opacity-40 hover:opacity-100'
+                        ]">
+                        {{ metric }}
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-6">
+                    <select v-model="chartFilters.providerId" class="bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none">
+                        <option value="">All Providers</option>
+                        <option v-for="p in providers" :key="p.id" :value="p.id">{{ p.name }}</option>
+                    </select>
+                    <select v-model="chartFilters.modelName" class="bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none">
+                        <option value="">All Models</option>
+                        <option v-for="m in pricingData" :key="m.model_name" :value="m.model_name">{{ m.model_name }}</option>
+                    </select>
+                </div>
+
                 <div class="h-64">
                     <Line :key="chartKey" :data="chartData" :options="chartOptions" />
                 </div>
@@ -232,9 +271,9 @@ import { useThemeStore } from '../store'
 import axios from 'axios'
 import { io } from 'socket.io-client'
 import { Line } from 'vue-chartjs'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
 const stats = ref(null)
 const pricingData = ref([])
@@ -242,6 +281,8 @@ const history = ref([])
 const totalHistory = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const providers = ref([])
+
 const filters = ref({
     providerId: '',
     modelName: '',
@@ -249,6 +290,15 @@ const filters = ref({
     sortBy: 'timestamp',
     sortOrder: 'DESC'
 })
+
+const chartFilters = ref({
+    interval: 'hour',
+    metric: 'requests',
+    providerId: '',
+    modelName: ''
+})
+
+const timeSeriesData = ref([])
 const activeLeaderboard = ref('Tokens')
 const selectedModel = ref('Average')
 const themeStore = useThemeStore()
@@ -393,24 +443,81 @@ const leaderboardData = computed(() => {
 
 const chartData = computed(() => {
     const isDark = themeStore.isDark
+    const labels = timeSeriesData.value.map(d => {
+        if (chartFilters.value.interval === 'hour') {
+            return d.label.split(' ')[1] // Just the time
+        }
+        return d.label
+    })
+    const data = timeSeriesData.value.map(d => d.value)
+
     return {
-        labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+        labels: labels.length > 0 ? labels : ['No Data'],
         datasets: [{
-            label: 'Requests',
-            data: [12, 19, 3, 5, 2, 3, 10],
+            label: chartFilters.value.metric.toUpperCase(),
+            data: data.length > 0 ? data : [0],
             borderColor: isDark ? '#ffffff' : '#000000',
-            tension: 0.1
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: isDark ? '#ffffff' : '#000000',
         }]
     }
 })
 
-const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+const chartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+                label: (context) => {
+                    let label = context.dataset.label || ''
+                    if (label) label += ': '
+                    if (context.parsed.y !== null) {
+                        if (chartFilters.value.metric === 'latency') {
+                            label += context.parsed.y.toFixed(0) + 'ms'
+                        } else {
+                            label += context.parsed.y.toLocaleString()
+                        }
+                    }
+                    return label
+                }
+            }
+        }
+    },
+    scales: {
+        y: {
+            beginAtZero: true,
+            grid: { color: themeStore.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+            ticks: { color: themeStore.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }
+        },
+        x: {
+            grid: { display: false },
+            ticks: { color: themeStore.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }
+        }
+    }
+}))
 
 // Watch theme change and force chart re-render
 watch(() => themeStore.isDark, async () => {
     chartKey.value++
     await nextTick()
 })
+
+const fetchTimeSeries = async () => {
+    try {
+        const res = await axios.get('/api/usage/timeseries', { params: chartFilters.value })
+        timeSeriesData.value = res.data
+    } catch (e) {
+        console.error('Failed to fetch time series:', e)
+    }
+}
 
 const fetchHistory = async () => {
   try {
@@ -439,7 +546,10 @@ const fetchData = async () => {
     ])
     stats.value = statsRes.data
     pricingData.value = pricingRes.data
-    await fetchHistory()
+    await Promise.all([
+        fetchHistory(),
+        fetchTimeSeries()
+    ])
   } catch (e) {
     console.error('Failed to fetch analytics:', e)
   }
@@ -466,6 +576,10 @@ watch(filters, () => {
     fetchHistory()
 }, { deep: true })
 
+watch(chartFilters, () => {
+    fetchTimeSeries()
+}, { deep: true })
+
 watch(currentPage, () => {
     fetchHistory()
 })
@@ -473,6 +587,9 @@ watch(currentPage, () => {
 onMounted(() => {
     fetchData()
     socket.value = io()
+    socket.value.on('status_update', (data) => {
+        providers.value = data
+    })
     socket.value.on('usage_update', () => {
         debouncedFetch()
     })

@@ -255,6 +255,58 @@ class StatusPersistence {
         }
     }
 
+    getTimeSeriesStats(interval = 'day', metric = 'requests', filters = {}) {
+        try {
+            let dateFormat = '%Y-%m-%d';
+            if (interval === 'minute') dateFormat = '%Y-%m-%d %H:%M';
+            if (interval === 'hour') dateFormat = '%Y-%m-%d %H:00';
+            if (interval === 'month') dateFormat = '%Y-%m';
+
+            let valueExpr = 'COUNT(*)';
+            if (metric === 'tokens') valueExpr = 'SUM(COALESCE(input_tokens, 0) + COALESCE(output_tokens, 0))';
+            if (metric === 'latency') valueExpr = 'AVG(latency)';
+
+            let query = `
+                SELECT 
+                    strftime(?, timestamp / 1000, 'unixepoch', 'localtime') as label,
+                    ${valueExpr} as value
+                FROM request_history
+            `;
+
+            const whereClauses = [];
+            const params = [dateFormat];
+
+            if (metric === 'latency') {
+                whereClauses.push("status = 'success'");
+            }
+            if (filters.providerId) {
+                whereClauses.push('provider_id = ?');
+                params.push(filters.providerId);
+            }
+            if (filters.modelName) {
+                whereClauses.push('model_name = ?');
+                params.push(filters.modelName);
+            }
+
+            if (whereClauses.length > 0) {
+                query += ' WHERE ' + whereClauses.join(' AND ');
+            }
+
+            query += ' GROUP BY label ORDER BY label ASC';
+            
+            // Limit to reasonable amount of points
+            if (interval === 'minute') query += ' LIMIT 60';
+            else if (interval === 'hour') query += ' LIMIT 48';
+            else if (interval === 'day') query += ' LIMIT 60';
+            else if (interval === 'month') query += ' LIMIT 24';
+
+            return this.db.prepare(query).all(...params);
+        } catch (error) {
+            console.error('Failed to get time series stats:', error.message);
+            return [];
+        }
+    }
+
     get(providerId, modelName) {
         try {
             const row = this.db.prepare('SELECT * FROM model_status WHERE provider_id = ? AND model_name = ?')

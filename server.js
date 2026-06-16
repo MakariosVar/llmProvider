@@ -190,6 +190,12 @@ app.get('/api/usage/history', (req, res) => {
     res.json(statusPersistence.getHistory(limit, offset, filters));
 });
 
+app.get('/api/usage/timeseries', (req, res) => {
+    const { interval, metric, providerId, modelName } = req.query;
+    const data = statusPersistence.getTimeSeriesStats(interval, metric, { providerId, modelName });
+    res.json(data);
+});
+
 app.get('/api/usage/pricing', (req, res) => {
     res.json(statusPersistence.getAllPricing());
 });
