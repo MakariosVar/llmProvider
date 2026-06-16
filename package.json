@@ -8,6 +8,7 @@
     "start": "cd client && npm run build && cd .. && node server.js",
     "test": "node src/testResultsCli.js",
     "chat": "node src/chatTui.js",
+    "fresh-db": "rm -rf status.db",
     "test:view": "node src/testResultsServer.js",
     "test:raw": "node src/testRunner.js"
   },
