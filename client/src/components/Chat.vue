@@ -8,7 +8,7 @@
           COMMAND TERMINAL
         </h2>
         <div class="flex gap-2">
-          <v-select v-model="selectedProvider" :options="providers.map(p => ({label: p.name, code: p.id, status: p.status}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="w-48 bg-white" :append-to-body="true">
+          <v-select v-model="selectedProvider" :options="providers.map(p => ({label: p.name, code: p.id, status: p.status}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="w-64 bg-white" :append-to-body="true">
             <template #option="{ label, status }">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
@@ -16,13 +16,13 @@
               </div>
             </template>
             <template #selected-option="{ label, status }">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
-                {{ label }}
+              <div class="flex items-center gap-2 overflow-hidden">
+                <span class="w-2 h-2 rounded-full shrink-0" :class="getStatusColor(status)"></span>
+                <span class="truncate">{{ label }}</span>
               </div>
             </template>
           </v-select>
-          <v-select v-model="selectedModel" :options="availableModels" label="label" :reduce="option => option.code" placeholder="Select Model" class="w-48 bg-white" :append-to-body="true">
+          <v-select v-model="selectedModel" :options="availableModels" label="label" :reduce="option => option.code" placeholder="Select Model" class="w-64 bg-white" :append-to-body="true">
             <template #option="{ label, status }">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
@@ -30,9 +30,9 @@
               </div>
             </template>
             <template #selected-option="{ label, status }">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
-                {{ label }}
+              <div class="flex items-center gap-2 overflow-hidden">
+                <span class="w-2 h-2 rounded-full shrink-0" :class="getStatusColor(status)"></span>
+                <span class="truncate">{{ label }}</span>
               </div>
             </template>
           </v-select>

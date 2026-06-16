@@ -73,7 +73,7 @@ body {
   --vs-dropdown-option-color: var(--text-color);
   --vs-dropdown-option--active-bg: var(--accent-bg);
   --vs-dropdown-option--active-color: var(--accent-text);
-  min-width: 150px;
+  min-width: 120px;
 }
 
 .v-select .vs__dropdown-toggle {
@@ -82,12 +82,25 @@ body {
   padding: 4px;
   background-color: var(--bg-color) !important;
   height: 44px;
+  overflow: hidden;
+}
+
+.v-select .vs__selected-options {
+  flex-wrap: nowrap;
+  max-width: calc(100% - 40px);
+  overflow: hidden;
 }
 
 .v-select .vs__selected {
   font-weight: 700 !important;
   color: var(--text-color) !important;
   border: none !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  margin: 0 !important;
+  padding: 0 5px !important;
 }
 
 /* Remove border from search input */
