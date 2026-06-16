@@ -146,7 +146,7 @@
                     </select>
                     
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black opacity-40 uppercase">Sort By:</span>
+                        <span class="text-[10px] font-black opacity-40 uppercase">Sort:</span>
                         <select v-model="filters.sortBy" class="bg-[var(--border-color)]/10 border border-[var(--border-color)] rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-[var(--text-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-bg)]">
                             <option value="timestamp">Date</option>
                             <option value="latency">Latency</option>
@@ -227,9 +227,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useThemeStore } from '../store'
 import axios from 'axios'
+import { io } from 'socket.io-client'
 import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
 
@@ -252,6 +253,15 @@ const activeLeaderboard = ref('Tokens')
 const selectedModel = ref('Average')
 const themeStore = useThemeStore()
 const chartKey = ref(0) 
+const socket = ref(null)
+
+let debounceTimer = null
+const debouncedFetch = () => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+        fetchData()
+    }, 500)
+}
 
 const highestModel = computed(() => {
     if (pricingData.value.length === 0) return 'N/A'
@@ -344,7 +354,6 @@ const pricingDetails = computed(() => {
 
         if (!priceInfo) {
             console.warn(`Pricing not found for model: ${modelToLookupStr}`);
-            console.warn(modelToLookupStr);
             return null;
         }
 
@@ -463,5 +472,16 @@ watch(currentPage, () => {
 
 onMounted(() => {
     fetchData()
+    socket.value = io()
+    socket.value.on('usage_update', () => {
+        debouncedFetch()
+    })
+})
+
+onUnmounted(() => {
+    if (socket.value) {
+        socket.value.disconnect()
+    }
+    if (debounceTimer) clearTimeout(debounceTimer)
 })
 </script>
