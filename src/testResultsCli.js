@@ -49,9 +49,9 @@ function printStats(stats) {
     console.log(
         chars.vertical +
         chalk.bold(' Total Tests  ') + chars.vertical +
-        chalk.bold('   Passing   ') + chars.vertical +
-        chalk.bold('  Warnings   ') + chars.vertical +
-        chalk.bold('   Failed    ') +
+        chalk.bold('   Passing    ') + chars.vertical +
+        chalk.bold('   Warnings   ') + chars.vertical +
+        chalk.bold('    Failed    ') +
         chars.vertical
     );
 
@@ -342,11 +342,12 @@ async function main() {
 
             // Check for model results (indented with "  ")
             if (line.startsWith('  ') && currentProvider) {
-                // Format: "  model-name... PASS" or "  model-name... WARNING: message"
-                const match = line.trim().match(/^(.+?)\.\.\.\s*(PASS|FAIL|WARNING)(.*)$/);
+                // Format: "  model-name (type)... PASS (responseTime ms)" or "  model-name... WARNING (responseTime ms): message"
+                const match = line.trim().match(/^(.+?)\s*\((text|image)\)\.\.\.\s*(PASS|FAIL|WARNING)\s*(?:\((.+?)\))?(.*)$/);
                 if (match) {
-                    const [, modelName, statusRaw, extra] = match;
+                    const [, modelName, type, statusRaw, time, extra] = match;
                     const status = statusRaw.toLowerCase();
+                    const responseTime = time ? time.trim() : null;
 
                     // Count
                     stats.total++;
@@ -360,17 +361,19 @@ async function main() {
 
                     // Full name for display: Provider / Model
                     const fullName = `${currentProvider} / ${modelName}`;
-                    const result = { name: fullName, status, message };
+                    const result = { name: fullName, status, message, responseTime };
                     incrementalResults.push(result);
+
+                    const timeDisplay = responseTime ? chalk.gray(` (${responseTime})`) : '';
 
                     // Print immediately
                     if (status === 'pass') {
-                        console.log(chalk.green.bold(`  ✓ ${modelName} — PASS`));
+                        console.log(chalk.green.bold(`  ✓ ${modelName}${timeDisplay} — PASS`));
                     } else if (status === 'warning') {
-                        console.log(chalk.yellow.bold(`  ⚠ ${modelName} — WARNING`));
+                        console.log(chalk.yellow.bold(`  ⚠ ${modelName}${timeDisplay} — WARNING`));
                         if (message) console.log('        ' + chalk.gray.italic(message));
                     } else {
-                        console.log(chalk.red.bold(`  ✗ ${modelName} — FAIL`));
+                        console.log(chalk.red.bold(`  ✗ ${modelName}${timeDisplay} — FAIL`));
                         if (message) console.log('        ' + chalk.gray.italic(message));
                     }
                 }
@@ -379,10 +382,11 @@ async function main() {
 
             // Handle old format too for backwards compatibility: "Testing Provider... PASS"
             if (line.startsWith('Testing ') && !line.trim().endsWith(':')) {
-                const match = line.match(/Testing (.+?)\.\.\.\s*(PASS|FAIL|WARNING)(.*)$/);
+                const match = line.match(/Testing (.+?)\.\.\.\s*(PASS|FAIL|WARNING)\s*(?:\((.+?)\))?(.*)/);
                 if (match) {
-                    const [, provider, statusRaw, extra] = match;
+                    const [, provider, statusRaw, time, extra] = match;
                     const status = statusRaw.toLowerCase();
+                    const responseTime = time ? time.trim() : null;
 
                     stats.total++;
                     if (status === 'pass') stats.passed++;
@@ -391,15 +395,17 @@ async function main() {
 
                     const messageMatch = extra.match(/:\s*(.+)/);
                     const message = messageMatch ? messageMatch[1].trim() : null;
-                    const result = { name: provider, status, message };
+                    const result = { name: provider, status, message, responseTime };
                     incrementalResults.push(result);
 
-                    if (status === 'pass') console.log(chalk.green.bold(`✓ ${provider} — PASS`));
+                    const timeDisplay = responseTime ? chalk.gray(` (${responseTime})`) : '';
+
+                    if (status === 'pass') console.log(chalk.green.bold(`✓ ${provider}${timeDisplay} — PASS`));
                     else if (status === 'warning') {
-                        console.log(chalk.yellow.bold(`⚠ ${provider} — WARNING`));
+                        console.log(chalk.yellow.bold(`⚠ ${provider}${timeDisplay} — WARNING`));
                         if (message) console.log('        ' + chalk.gray.italic(message));
                     } else {
-                        console.log(chalk.red.bold(`✗ ${provider} — FAIL`));
+                        console.log(chalk.red.bold(`✗ ${provider}${timeDisplay} — FAIL`));
                         if (message) console.log('        ' + chalk.gray.italic(message));
                     }
                 }

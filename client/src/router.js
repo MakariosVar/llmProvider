@@ -3,6 +3,7 @@ import Login from './components/Login.vue'
 import Status from './components/Status.vue'
 import Chat from './components/Chat.vue'
 import Compare from './components/Compare.vue'
+import TestAPI from './components/TestAPI.vue'
 import NotFound from './components/NotFound.vue'
 import { useAuthStore } from './store'
 
@@ -12,6 +13,7 @@ const routes = [
   { path: '/status', component: Status, meta: { requiresAuth: true } },
   { path: '/chat', component: Chat, meta: { requiresAuth: true } },
   { path: '/compare', component: Compare, meta: { requiresAuth: true } },
+  { path: '/test-api', component: TestAPI, meta: { requiresAuth: true } },
   { path: '/:pathMatch(.*)*', component: NotFound }
 ]
 

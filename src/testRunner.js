@@ -87,18 +87,21 @@ async function runTests() {
         for (const modelObj of allModels) {
             const { name: model, type } = modelObj;
             process.stdout.write(`  ${model} (${type})... `);
+            const startTime = Date.now();
             try {
                 // Simple test for this specific model
                 const testPrompt = type === 'image' ? 'a small square' : 'hi';
                 const response = await orchestrator.callProvider(provider, testPrompt, null, 0.7, model, type);
+                const responseTime = Date.now() - startTime;
                 if (response) {
-                    console.log('PASS');
+                    console.log(`PASS (${responseTime}ms)`);
                     passed++;
                     providerManager.updateModelStatus(provider.id, model, 'online');
                 } else {
                     throw new Error('Empty response');
                 }
             } catch (error) {
+                const responseTime = Date.now() - startTime;
                 // Check if it's a rate limit error (429)
                 const isRateLimited = error.response?.status === 429 ||
                     error.message?.toLowerCase().includes('rate limit') ||
@@ -134,7 +137,7 @@ async function runTests() {
                             isBillingIssue ? 'Insufficient credit/billing issue' :
                                 isQuotaIssue ? 'Quota exceeded' :
                                     'Internal server error (upstream)';
-                    console.log(`WARNING: ${reason}`);
+                    console.log(`WARNING (${responseTime}ms): ${reason}`);
                     if (error.response && error.response.data) {
                         const errorData = error.response.data;
                         const errorMsg = respErrorMessage || (typeof errorData === 'string' ? errorData : JSON.stringify(errorData));
@@ -144,11 +147,11 @@ async function runTests() {
                     warnings++;
                     providerManager.updateModelStatus(provider.id, model, 'error', reason);
                 } else if (isConfigIssue) {
-                    console.log(`WARNING: ${error.message}`);
+                    console.log(`WARNING (${responseTime}ms): ${error.message}`);
                     warnings++;
                     providerManager.updateModelStatus(provider.id, model, 'error', error.message);
                 } else {
-                    console.log(`FAIL: ${error.message}`);
+                    console.log(`FAIL (${responseTime}ms): ${error.message}`);
                     if (error.response && error.response.data) {
                         const errorData = error.response.data;
                         const display = JSON.stringify(errorData).substring(0, 200);

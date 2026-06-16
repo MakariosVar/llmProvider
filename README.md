@@ -6,141 +6,86 @@ A robust Node.js server that orchestrates multiple free and paid LLM providers, 
 
 - **Unified API**: Single point of entry for multiple LLM and Image providers.
 - **Smart Orchestration**: Automatically routes requests to available providers based on priority, health, and heavy-usage capabilities.
-- **Image Generation Support**: Dedicated endpoints for generating images using various free providers.
+- **Persistent Storage**: Uses **SQLite** to track model health, rate limits, and failure history across restarts.
 - **High Availability**:
   - **Failover**: Automatically switches to the next available provider if one fails.
   - **Circuit Breaker**: Detects failing providers and temporarily stops sending requests to them.
-  - **Rate Limit Management**: Tracks daily and minute-level usage limits to prevent API errors.
-- **Real-time Monitoring**: Built-in status tracking via Socket.io.
+  - **Rate Limit Management**: Tracks daily and minute-level usage limits.
+- **Rich Dashboard**:
+  - **System Status**: Real-time health monitoring of all providers and models.
+  - **Command Center**: Full-featured chat interface with streaming and conversational memory.
+  - **Model Compare**: Side-by-side technical comparison with latency and token-per-second metrics.
+  - **Test API**: Interactive code builder and documentation for developers.
+- **Performance Tracking**: Measures response latency and estimates token usage for every request.
 - **Terminal User Interface (TUI)**: Interactive CLI chat client included.
-- **Streaming Support**: Server-Sent Events (SSE) support for streaming responses.
+- **Streaming Support**: Server-Sent Events (SSE) support for real-time responses.
 
 ## Supported Providers
 
 ### Text Generation
-- Google Gemini
-- Groq
-- Anthropic (Claude)
-- Cloudflare Workers AI
-- GitHub Models
-- Cohere
-- HuggingFace
-- NVIDIA NIM
-- OpenRouter
-- NLP Cloud
-- APIFreeLLM
-- Novita AI
-- AI21 Labs
-- Mistral AI
-- Ollama (Local)
+- Google Gemini, Groq, Anthropic (Claude), Cloudflare Workers AI, GitHub Models, Cohere, HuggingFace, NVIDIA NIM, OpenRouter, NLP Cloud, APIFreeLLM, Mistral AI, Ollama (Local), and more.
 
 ### Image Generation
-- Pollinations.ai (No API key required)
-- Cloudflare Workers AI (SDXL Lightning, Flux Schnell)
-- HuggingFace (via Stable Diffusion models)
+- Pollinations.ai, Cloudflare Workers AI (Flux, SDXL), HuggingFace.
 
-## internal Architecture
+## Internal Architecture
 
-- **Server (`server.js`)**: Express-based API server with Socket.io for real-time updates. Now supports both Text and Image generation routes.
-- **Orchestrator (`src/orchestrator.js`)**: Handles request routing, fallback logic, and provider execution for both LLMs and Image models.
-- **Provider Manager (`src/providerManager.js`)**: Manages the state, health, and usage quotas of each provider, now categorized by type.
-- **TUI (`src/chatTui.js`)**: A `blessed`-based terminal interface for chatting with the models.
+- **Server (`server.js`)**: Express server with Socket.io and SQLite persistence.
+- **Orchestrator (`src/orchestrator.js`)**: Core routing logic with support for streaming and history.
+- **Status Persistence (`src/statusPersistence.js`)**: SQLite-backed storage for model reliability tracking.
+- **Client (Vue 3)**: Modern frontend for interaction and monitoring.
 
 ## Prerequisites
 
-- Node.js (v18+ recommended)
+- Node.js (v18+)
 - npm
 
 ## Installation
 
-1.  Clone the repository:
-    ```bash
-    git clone <repository_url>
-    cd llm-provider-server
-    ```
-
-2.  Install dependencies:
+1.  Clone and install:
     ```bash
     npm install
     ```
 
-3.  Configure environment variables:
-     Copy the example environment file:
+2.  Configure:
     ```bash
     cp .env.example .env
+    # Add your API keys to .env
     ```
-    Edit `.env` and add your API keys for the providers you wish to use.
+
+3.  Start:
+    ```bash
+    npm start
+    ```
 
 ## Usage
 
-### Starting the Server
+### Web Dashboard
+Access the UI at `http://localhost:3000` to monitor status, chat, compare models, and get API snippets.
 
-Start the orchestration server:
+### API Integration
 
-```bash
-npm start
+#### POST `/api/ai/stream` (Recommended)
+Streaming text generation with conversation memory.
+
+**Body:**
+```json
+{
+  "prompt": "Tell me a joke",
+  "messages": [{"role": "user", "content": "Hi"}],
+  "providerId": "google_gemini"
+}
 ```
-
-The server runs on port `3000` by default.
-
-### Using the Terminal Chat (TUI)
-
-Launch the interactive terminal chat interface:
-
-```bash
-npm run chat
-```
-
-- **Enter**: Send message.
-- **Arrow Keys**: Navigate the provider list.
-- **Q / Ctrl+C**: Quit.
-
-### API Usage
 
 #### POST `/api/ai`
-Generate text (non-streaming).
-
-**Body:**
-```json
-{
-  "prompt": "Hello, world!",
-  "systemPrompt": "You are a helpful assistant.",
-  "model": "optional-specific-model-name",
-  "temperature": 0.7
-}
-```
+Standard non-streaming text generation.
 
 #### POST `/api/ai/image`
-Generate an image.
-
-**Body:**
-```json
-{
-  "prompt": "A futuristic city at sunset",
-  "model": "flux"
-}
-```
-
-#### GET `/image?prompt=...`
-Quickly generate and view an image in your browser.
-
-**Query Params:**
-- `prompt`: The image description (required)
-- `model`: Optional model name (e.g., `flux`, `turbo`)
-
-#### POST `/api/ai/stream`
-Generate text with streaming response (SSE).
-
-#### GET `/api/status`
-Get the current status and usage stats of all providers.
-
-#### GET `/llms`
-View the real-time health dashboard in your browser.
+Image generation via Pollinations or Cloudflare.
 
 ## Testing
 
-Run the test suite to verify provider connectivity (includes both text and image models):
-
+Verify your setup and provider health:
 ```bash
 npm test
 ```

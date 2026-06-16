@@ -37,7 +37,8 @@ const router = useRouter()
 const navItems = [
   { name: 'System Status', path: '/status' },
   { name: 'Command Center', path: '/chat' },
-  { name: 'Model Compare', path: '/compare' }
+  { name: 'Model Compare', path: '/compare' },
+  { name: 'Test API', path: '/test-api' }
 ]
 
 const logout = () => {
