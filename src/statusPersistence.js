@@ -24,6 +24,15 @@ class StatusPersistence {
             )
         `);
 
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS provider_usage (
+                provider_id TEXT PRIMARY KEY,
+                requests_today INTEGER,
+                requests_this_minute INTEGER,
+                last_updated INTEGER
+            )
+        `);
+
         // Check if old tokens column exists
         const tableInfo = this.db.prepare("PRAGMA table_info(request_history)").all();
         const hasTokensColumn = tableInfo.some(col => col.name === 'tokens');
@@ -150,6 +159,18 @@ class StatusPersistence {
         }
     }
 
+    updateModelStatus(providerId, modelName, status, error = null) {
+        try {
+            const insert = this.db.prepare(`
+                INSERT OR REPLACE INTO model_status (provider_id, model_name, status, last_updated, error)
+                VALUES (?, ?, ?, ?, ?)
+            `);
+            insert.run(providerId, modelName, status, Date.now(), error ? String(error) : null);
+        } catch (error) {
+            console.error('Failed to update model status in SQLite:', error.message);
+        }
+    }
+
     migrateFromJson() {
         const jsonPath = path.resolve(JSON_DB_FILE);
         if (fs.existsSync(jsonPath)) {
@@ -188,15 +209,25 @@ class StatusPersistence {
         }
     }
 
-    updateModelStatus(providerId, modelName, status, error = null) {
+    updateUsage(providerId, requestsToday, requestsThisMinute) {
         try {
             const insert = this.db.prepare(`
-                INSERT OR REPLACE INTO model_status (provider_id, model_name, status, last_updated, error)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO provider_usage (provider_id, requests_today, requests_this_minute, last_updated)
+                VALUES (?, ?, ?, ?)
             `);
-            insert.run(providerId, modelName, status, Date.now(), error ? String(error) : null);
+            insert.run(providerId, requestsToday, requestsThisMinute, Date.now());
         } catch (error) {
-            console.error('Failed to update model status in SQLite:', error.message);
+            console.error('Failed to update provider usage in SQLite:', error.message);
+        }
+    }
+
+    getUsage(providerId) {
+        try {
+            const row = this.db.prepare('SELECT * FROM provider_usage WHERE provider_id = ?').get(providerId);
+            return row ? { requestsToday: row.requests_today, requestsThisMinute: row.requests_this_minute } : null;
+        } catch (error) {
+            console.error('Failed to get provider usage from SQLite:', error.message);
+            return null;
         }
     }
 

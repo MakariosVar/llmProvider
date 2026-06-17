@@ -87,7 +87,9 @@ class ProviderManager {
                 lastUsed: 0,
                 errors: 0
             };
-            this.usage[key] = {
+            // Load persistent status and iterate models
+            const persistedUsage = statusPersistence.getUsage(key);
+            this.usage[key] = persistedUsage || {
                 requestsToday: 0,
                 requestsThisMinute: 0,
                 lastResetMinute: Date.now(),
@@ -262,25 +264,34 @@ class ProviderManager {
             this.usage[id].requestsToday++;
             this.usage[id].requestsThisMinute++;
             this.providers[id].lastUsed = Date.now();
+            statusPersistence.updateUsage(id, this.usage[id].requestsToday, this.usage[id].requestsThisMinute);
         }
     }
 
     checkResetLimits(id) {
         const usage = this.usage[id];
         const now = Date.now();
+        let changed = false;
 
         // Reset minute limit
         if (now - usage.lastResetMinute > 60000) {
             usage.requestsThisMinute = 0;
             usage.lastResetMinute = now;
+            changed = true;
         }
 
         // Reset daily limit
         if (now - usage.lastResetDay > 86400000) {
             usage.requestsToday = 0;
             usage.lastResetDay = now;
+            changed = true;
+        }
+
+        if (changed) {
+            statusPersistence.updateUsage(id, usage.requestsToday, usage.requestsThisMinute);
         }
     }
+
 
     // Model-level status management
     updateModelStatus(providerId, modelName, status, error = null) {
