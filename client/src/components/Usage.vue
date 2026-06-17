@@ -145,7 +145,7 @@
             <!-- Tabbed Leaderboards -->
             <div class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-2xl shadow-xl overflow-hidden">
                 <div class="flex border-b border-[var(--border-color)]">
-                    <button v-for="tab in ['Tokens', 'Requests', 'Success']" :key="tab" 
+                    <button v-for="tab in ['Tokens', 'Requests', 'Success', 'Failures']" :key="tab" 
                         @click="activeLeaderboard = tab"
                         :class="[
                             'flex-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors',
@@ -342,10 +342,10 @@ const summaryStats = computed(() => {
   
   return [
     { label: 'Total Executions', value: (s.totalRequests || 0).toLocaleString() },
+    { label: 'Successes', value: (s.successRequests || 0).toLocaleString() },
+    { label: 'Failures', value: ((s.totalRequests || 0) - (s.successRequests || 0)).toLocaleString() },
     { label: 'Success Rate', value: rate, suffix: '%' },
     { label: 'Avg Latency', value: s.avgLatency || 0, suffix: 'ms' },
-    { label: 'Input Tokens', value: (s.totalInputTokens || 0).toLocaleString(), suffix: 'est.' },
-    { label: 'Output Tokens', value: (s.totalOutputTokens || 0).toLocaleString(), suffix: 'est.' }
   ]
 })
 
@@ -437,6 +437,9 @@ const leaderboardData = computed(() => {
     }
     if (activeLeaderboard.value === 'Requests') {
         return m.slice().sort((a, b) => b.total - a.total).slice(0, 5).map(m => ({name: m.model_name, value: (m.total || 0).toLocaleString()}))
+    }
+    if (activeLeaderboard.value === 'Failures') {
+        return m.slice().sort((a, b) => (b.total - b.success) - (a.total - a.success)).slice(0, 5).map(m => ({name: m.model_name, value: ((m.total || 0) - (m.success || 0)).toLocaleString()}))
     }
     return m.slice().sort((a, b) => b.success - a.success).slice(0, 5).map(m => ({name: m.model_name, value: (m.success || 0).toLocaleString()}))
 })

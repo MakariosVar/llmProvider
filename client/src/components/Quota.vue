@@ -1,5 +1,12 @@
 <template>
   <div class="space-y-6 pb-12">
+        <!-- Info Box -->
+    <div class="bg-red-500/5 border-4 border-red-500 rounded-xl p-4 flex gap-4 items-center">
+        <div class="text-2xl">⚠️</div>
+        <p class="text-[15px] text-red-500 leading-snug">
+            <strong>WARNING:</strong> This page is under construction. The metrics displayed may not be accurate.
+        </p>
+    </div>
     <!-- Refactored Header & Summary (First View) -->
     <header class="bg-white border-2 border-black rounded-[1.5rem] p-6 shadow-premium-sm space-y-6">
         <div class="flex justify-between items-center">
