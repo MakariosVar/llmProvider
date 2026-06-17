@@ -4,5 +4,7 @@ dist
 .db
 .git
 
+package-lock.json
+
 syntax: regexp
 ^\.env(?!\.example$)
