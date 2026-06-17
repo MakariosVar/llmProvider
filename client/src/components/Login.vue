@@ -12,7 +12,7 @@
         <div>
           <input v-model="password" type="password" placeholder="Password" class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
         </div>
-        <button type="submit" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+        <button type="submit" class="w-full py-3 !bg-[var(--accent-bg)] !text-[var(--accent-text)] font-bold rounded-xl transition-all shadow-lg active:scale-95 border-2 border-[var(--border-color)]">
           Sign In
         </button>
       </form>
