@@ -1,53 +1,107 @@
 <template>
   <div class="space-y-6 pb-12">
-    <!-- Header & Summary -->
-    <header class="space-y-4">
-      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 class="text-3xl font-black text-[var(--text-color)] tracking-tighter uppercase leading-none">
-            Quota Dashboard
-          </h1>
-          <p class="text-slate-400 mt-1 text-sm font-medium">Verified infrastructure capacity.</p>
+    <!-- Refactored Header & Summary (First View) -->
+    <header class="bg-white border-2 border-black rounded-[1.5rem] p-6 shadow-premium-sm space-y-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-black text-black tracking-tighter uppercase">Quota Dashboard</h1>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Usage vs. Verified Capacity</p>
+            </div>
+            <div class="flex gap-2 text-[10px] font-black uppercase tracking-widest">
+                <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full border border-slate-200">{{ rateLimitedCount }} Throttled</span>
+            </div>
         </div>
-        
-        <div class="flex flex-wrap gap-3">
-          <div class="px-4 py-2 border-2 border-black rounded-xl shadow-premium-xs flex flex-col gap-0.5 min-w-[120px] bg-indigo-500/10 border-indigo-500/20">
-            <span class="text-[9px] font-black uppercase tracking-widest opacity-80 text-indigo-400">Verified RPM</span>
-            <div class="value text-xl font-black text-black tracking-tight">{{ totalLiveRpmCapacity.toLocaleString() }}</div>
-          </div>
-          <div class="px-4 py-2 border-2 border-black rounded-xl shadow-premium-xs flex flex-col gap-0.5 min-w-[120px] bg-emerald-500/10 border-emerald-500/20">
-            <span class="text-[9px] font-black uppercase tracking-widest opacity-80 text-emerald-400">Verified TPM</span>
-            <div class="value text-xl font-black text-black tracking-tight">{{ formatNumber(totalLiveTokenCapacity) }}</div>
-          </div>
-          <div class="px-4 py-2 border-2 border-black rounded-xl shadow-premium-xs flex flex-col gap-0.5 min-w-[120px] bg-rose-500/10 border-rose-500/20">
-            <span class="text-[9px] font-black uppercase tracking-widest opacity-80 text-rose-400">Active Blocks</span>
-            <div class="value text-xl font-black text-black tracking-tight">{{ rateLimitedCount }}</div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Global Capacity Visualization -->
-      <div class="bg-black/5 border-2 border-black rounded-[1.5rem] p-5 shadow-premium-sm">
-        <div class="flex justify-between items-center mb-3">
-            <h2 class="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                <span class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-                Verified System Health
-            </h2>
-            <div class="text-[10px] font-mono font-bold">{{ Math.round(globalRequestPercentage) }}% Verified Capacity</div>
-        </div>
-        <div class="h-4 bg-black/10 rounded-full overflow-hidden border-2 border-black p-0.5">
-            <div class="h-full rounded-full transition-all duration-1000 ease-out"
-                :class="globalRequestPercentage > 50 ? 'bg-indigo-500' : globalRequestPercentage > 20 ? 'bg-amber-500' : 'bg-rose-500'"
-                :style="{ width: globalRequestPercentage + '%' }">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left: KPIs and Health -->
+            <div class="lg:col-span-1 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-slate-50 rounded-xl border border-black/5">
+                        <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Requests (Used/Total)</div>
+                        <div class="text-xl font-black text-black">
+                            {{ formatNumber(totalUsedRequests) }} <span class="text-xs opacity-50">/ {{ formatNumber(totalCapacityRequests) }}</span>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-black/5">
+                        <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tokens (Used/Total)</div>
+                        <div class="text-xl font-black text-black">
+                            {{ formatNumber(totalUsedTokens) }} <span class="text-xs opacity-50">/ {{ formatNumber(totalCapacityTokens) }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-xl border border-black/5 flex items-center justify-between">
+                    <div>
+                        <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Global Capacity</div>
+                        <div class="text-xl font-black text-black">
+                            {{ 
+                                (totalUsedRequests / Math.max(1, totalCapacityRequests)) > 0 && (totalUsedRequests / Math.max(1, totalCapacityRequests)) < 0.01 
+                                ? '<1% Used' 
+                                : Math.round((totalUsedRequests / Math.max(1, totalCapacityRequests)) * 100) + '% Used' 
+                            }}
+                        </div>
+                        <div class="text-[9px] font-bold text-emerald-600 mt-1">
+                            Reset: {{ nextResetTime ? formatCountdown(nextResetTime) : 'Stable' }}
+                        </div>
+                    </div>
+                    <!-- Circular Gauge -->
+                    <div class="relative w-12 h-12">
+                        <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" />
+                            <path class="text-indigo-500" 
+                                  :stroke-dasharray="Math.max(2, Math.round((totalUsedRequests / Math.max(1, totalCapacityRequests)) * 100)) + ', 100'" 
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                                  fill="none" 
+                                  stroke="currentColor" 
+                                  stroke-width="3" 
+                                  stroke-linecap="round" />
+                        </svg>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-            <div v-for="stat in summaryGrid" :key="stat.label" class="p-3 bg-white/50 rounded-xl border border-black/5">
-                <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">{{ stat.label }}</div>
-                <div class="text-sm font-bold">{{ stat.value }}</div>
+
+            <!-- Right: Analytical Chart & Filters -->
+            <div class="lg:col-span-2 p-4 bg-slate-50 rounded-2xl border border-black/5 space-y-4">
+                <div class="flex justify-between items-center gap-4">
+                    <div class="flex gap-2">
+                        <select v-model="chartFilters.interval" class="bg-white border border-black/10 rounded-lg px-2 py-1 text-[10px] font-bold uppercase">
+                            <option value="minute">1H</option>
+                            <option value="hour">24H</option>
+                            <option value="day">7D</option>
+                            <option value="month">Monthly</option>
+                        </select>
+                        <select v-model="chartFilters.metric" class="bg-white border border-black/10 rounded-lg px-2 py-1 text-[10px] font-bold uppercase">
+                            <option value="requests">Requests</option>
+                            <option value="tokens">Tokens</option>
+                            <option value="latency">Latency</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2 text-[10px] font-black uppercase tracking-widest">
+                        <div class="p-2 bg-white rounded-lg border border-black/5">
+                            <span class="text-slate-400">Vel:</span> +{{ usageVelocity }} req/min
+                        </div>
+                        <div class="p-2 bg-white rounded-lg border border-black/5">
+                            <span class="text-slate-400">Reset:</span> {{ nextResetTime ? formatCountdown(nextResetTime) : 'Stable' }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Density Heatmap (Requests) -->
+                <div class="w-full h-3 bg-slate-200 rounded-full flex overflow-hidden">
+                    <div v-for="p in providers" :key="p.id" 
+                         class="h-full"
+                         :style="{ 
+                             width: (((p.usage?.requestsToday || 0) / Math.max(1, totalCapacityRequests)) * 100) + '%',
+                             backgroundColor: (p.usage?.requestsToday / Math.max(1, p.rpm || 1)) > 0.7 ? '#ef4444' : '#10b981'
+                         }">
+                    </div>
+                </div>
+
+                <div class="h-40">
+                    <Line :key="chartKey" :data="chartData" :options="chartOptions" />
+                </div>
             </div>
+
         </div>
-      </div>
     </header>
 
     <!-- Info Box -->
@@ -181,22 +235,137 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
+import { useThemeStore } from '../store'
 import axios from 'axios'
 import { io } from 'socket.io-client'
+import { Line } from 'vue-chartjs'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
 const providers = ref([])
 const socket = ref(null)
 const now = ref(Date.now())
 
+// Analytical state
+const chartFilters = ref({
+    interval: 'hour',
+    metric: 'requests',
+    providerId: '',
+    modelName: ''
+})
+const timeSeriesData = ref([])
+const themeStore = useThemeStore()
+const chartKey = ref(0)
+
 const fetchData = async () => {
-  try {
-    const res = await axios.get('/api/status')
-    providers.value = res.data.providers
-  } catch (e) {
-    console.error('Failed to fetch quota data:', e)
-  }
+    try {
+        const [statusRes, timeSeriesRes] = await Promise.all([
+            axios.get('/api/status'),
+            axios.get('/api/usage/timeseries', { params: chartFilters.value })
+        ])
+        providers.value = statusRes.data.providers
+        timeSeriesData.value = timeSeriesRes.data
+    } catch (e) {
+        console.error('Failed to fetch quota data:', e)
+    }
 }
+
+// Add helper for velocity
+const usageVelocity = computed(() => {
+    // Calculate requests per minute from the last hour of chart data
+    const lastHour = timeSeriesData.value.filter(d => d.label.includes('last hour'));
+    if (lastHour.length < 2) return 0;
+    const first = lastHour[0].value;
+    const last = lastHour[lastHour.length - 1].value;
+    return Math.max(0, last - first);
+})
+
+const nextResetTime = computed(() => {
+    // Only consider providers with high usage (>50%) or near limit as bottlenecks
+    let earliest = Infinity;
+    providers.value.forEach(p => {
+        if (p.liveRateLimits) {
+            Object.values(p.liveRateLimits).forEach(limit => {
+                if (limit.requestsReset && limit.requestsRemaining < (limit.requestsLimit * 0.5)) {
+                    if (limit.requestsReset < earliest) earliest = limit.requestsReset;
+                }
+            });
+        }
+    });
+    return earliest === Infinity ? null : earliest;
+})
+// ... keep existing helpers (formatNumber, formatCountdown, isRateLimited) ...
+
+// Watchers for analytics
+watch(chartFilters, () => {
+    fetchTimeSeries()
+}, { deep: true })
+
+const fetchTimeSeries = async () => {
+    try {
+        const res = await axios.get('/api/usage/timeseries', { params: chartFilters.value })
+        timeSeriesData.value = res.data
+    } catch (e) {
+        console.error('Failed to fetch time series:', e)
+    }
+}
+
+// Chart computed properties
+const chartData = computed(() => {
+    const isDark = themeStore.isDark
+    const labels = timeSeriesData.value.map(d => {
+        if (chartFilters.value.interval === 'hour') return d.label.split(' ')[1]
+        return d.label
+    })
+    const data = timeSeriesData.value.map(d => d.value)
+    return {
+        labels: labels.length > 0 ? labels : ['No Data'],
+        datasets: [{
+            label: chartFilters.value.metric.toUpperCase(),
+            data: data.length > 0 ? data : [0],
+            borderColor: isDark ? '#ffffff' : '#000000',
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: isDark ? '#ffffff' : '#000000',
+        }]
+    }
+})
+
+const chartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            mode: 'index',
+            intersect: false,
+            bodyFont: { size: 10 },
+            titleFont: { size: 10 }
+        }
+    },
+    scales: {
+        y: { 
+            beginAtZero: true, 
+            grid: { display: false },
+            ticks: { font: { size: 9 } } 
+        },
+        x: { 
+            grid: { display: false },
+            ticks: { font: { size: 9 } } 
+        }
+    }
+}))
+
+// Watch theme change and force chart re-render
+watch(() => themeStore.isDark, async () => {
+    chartKey.value++
+    await nextTick()
+})
 
 const allProviders = computed(() => {
     return [...providers.value].sort((a, b) => {
@@ -212,13 +381,68 @@ const allProviders = computed(() => {
     });
 })
 
-const totalLiveRpmCapacity = computed(() => {
+const totalUsedRequests = computed(() => {
     let total = 0
     providers.value.forEach(p => {
+        // 1. Add usage from live tracking if available
         if (p.liveRateLimits) {
             Object.values(p.liveRateLimits).forEach(limit => {
-                if (limit.requestsLimit) total += limit.requestsLimit
+                if (limit.requestsLimit !== null) {
+                    total += (limit.requestsLimit - (limit.requestsRemaining || 0))
+                }
             })
+        }
+        // 2. Add static usage (if not already tracked by live tracking)
+        // If a provider has liveRateLimits, assume its usage is covered there
+        if (!p.liveRateLimits || Object.keys(p.liveRateLimits).length === 0) {
+            total += (p.usage?.requestsToday || 0)
+        }
+    })
+    return total
+})
+
+const totalUsedTokens = computed(() => {
+    let total = 0
+    providers.value.forEach(p => {
+        // 1. Add usage from live tracking
+        if (p.liveRateLimits) {
+            Object.values(p.liveRateLimits).forEach(limit => {
+                if (limit.tokensLimit !== null) {
+                    total += (limit.tokensLimit - (limit.tokensRemaining || 0))
+                }
+            })
+        }
+        // 2. If no live tokens, we might not have static token usage tracked in the same way.
+        // Assuming static tokens are harder to track without live headers for now.
+    })
+    return total
+})
+
+const totalCapacityRequests = computed(() => {
+    let total = 0
+    providers.value.forEach(p => {
+        if (p.liveRateLimits && Object.keys(p.liveRateLimits).length > 0) {
+             Object.values(p.liveRateLimits).forEach(limit => {
+                if (limit.requestsLimit) total += limit.requestsLimit
+             })
+        } else {
+             // Fallback to static rpm for total capacity calculation if no live data
+             total += (p.rpm || 0)
+        }
+    })
+    return total
+})
+
+const totalCapacityTokens = computed(() => {
+    let total = 0
+    providers.value.forEach(p => {
+        if (p.liveRateLimits && Object.keys(p.liveRateLimits).length > 0) {
+             Object.values(p.liveRateLimits).forEach(limit => {
+                if (limit.tokensLimit) total += limit.tokensLimit
+             })
+        } else {
+             // Fallback to static daily_limit
+             total += (p.daily_limit || 0)
         }
     })
     return total
@@ -278,7 +502,7 @@ const globalRequestPercentage = computed(() => {
 const summaryGrid = computed(() => [
     { label: 'Active Providers', value: providers.value.length },
     { label: 'Live Models Tracked', value: liveTrackingCount.value },
-    { label: 'Verified Avg Health', value: Math.round(globalRequestPercentage.value) + '%' },
+    { label: 'Avg Health', value: Math.round(globalRequestPercentage.value) + '%' },
     { label: 'Active Alerts', value: rateLimitedCount.value }
 ])
 

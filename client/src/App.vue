@@ -41,11 +41,11 @@ const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const router = useRouter()
 const navItems = [
-  { name: 'System Status', path: '/status' },
-  { name: 'Command Center', path: '/chat' },
-  { name: 'Model Compare', path: '/compare' },
-  { name: 'Imagination', path: '/images' },
-  { name: 'Analytics', path: '/usage' },
+  { name: 'Status', path: '/status' },
+  { name: 'Chat', path: '/chat' },
+  { name: 'Compare', path: '/compare' },
+  { name: 'Images', path: '/images' },
+  { name: 'Usage', path: '/usage' },
   { name: 'Quota', path: '/quota' },
   { name: 'Test API', path: '/test-api' }
 ]
