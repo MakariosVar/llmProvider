@@ -153,7 +153,9 @@ app.post('/api/ai/stream', validateGenerateParams, async (req, res) => {
                 sendEvent('end', { 
                     content: payload.content, 
                     responseTime: payload.responseTime, 
-                    tokens: payload.tokens 
+                    tokens: payload.tokens,
+                    inputTokens: payload.inputTokens,
+                    outputTokens: payload.outputTokens
                 });
             }
         });

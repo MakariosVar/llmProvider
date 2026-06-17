@@ -228,7 +228,7 @@ class Orchestrator {
                     // If it succeeds, clear any potential rate limit (though it shouldn't be there if we checked)
                     providerManager.clearRateLimit(provider.id, model);
 
-                    const inputTokens = Math.ceil(prompt.length / 4);
+                    const inputTokens = Math.ceil((prompt.length + (systemPrompt ? systemPrompt.length : 0) + (history ? JSON.stringify(history).length : 0)) / 4);
                     const outputTokens = Math.ceil(response.length / 4);
                     // Record success in circuit breaker
                     circuitBreaker.recordSuccess(provider.id);
@@ -249,7 +249,8 @@ class Orchestrator {
                         content: response,
                         responseTime: responseTime,
                         inputTokens,
-                        outputTokens
+                        outputTokens,
+                        tokens: inputTokens + outputTokens
                     };
                 } catch (error) {
                     const responseTime = Date.now() - startTime;
@@ -614,7 +615,7 @@ class Orchestrator {
 
                     const endTime = Date.now();
                     const responseTime = endTime - startTime;
-                    const inputTokens = Math.ceil(prompt.length / 4);
+                    const inputTokens = Math.ceil((prompt.length + (systemPrompt ? systemPrompt.length : 0) + (history ? JSON.stringify(history).length : 0)) / 4);
                     const outputTokens = Math.ceil(fullContent.length / 4);
 
                     providerManager.incrementUsage(provider.id);
@@ -638,10 +639,19 @@ class Orchestrator {
                         content: fullContent,
                         responseTime: responseTime,
                         inputTokens: inputTokens,
-                        outputTokens: outputTokens
+                        outputTokens: outputTokens,
+                        tokens: inputTokens + outputTokens
                     });
 
-                    return { provider: provider.name, model: model, content: fullContent, responseTime: responseTime };
+                    return { 
+                        provider: provider.name, 
+                        model: model, 
+                        content: fullContent, 
+                        responseTime: responseTime,
+                        inputTokens: inputTokens,
+                        outputTokens: outputTokens,
+                        tokens: inputTokens + outputTokens
+                    };
                 } catch (error) {
                     const responseTime = Date.now() - startTime;
                     statusPersistence.logRequest({

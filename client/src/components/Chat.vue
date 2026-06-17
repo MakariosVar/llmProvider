@@ -45,7 +45,13 @@
             <div v-if="msg.role === 'ai'" class="flex justify-between items-center text-[10px] font-bold uppercase mb-1 opacity-70 gap-4">
               <span>{{ msg.provider || '...' }} / {{ msg.model || '...' }}</span>
               <span v-if="msg.responseTime" class="bg-black/10 px-2 py-0.5 rounded">
-                {{ (msg.responseTime / 1000).toFixed(2) }}s | {{ msg.tokens }} tokens
+                {{ (msg.responseTime / 1000).toFixed(2) }}s | 
+                <span v-if="msg.inputTokens !== undefined">
+                  In: {{ msg.inputTokens }} / Out: {{ msg.outputTokens }}
+                </span>
+                <span v-else>
+                  {{ msg.tokens }} tokens
+                </span>
               </span>
             </div>
             <div v-if="msg.role === 'ai'" v-html="renderMarkdown(msg.content)" class="markdown-content text-left"></div>
@@ -138,7 +144,9 @@ const send = async () => {
     provider: '',
     model: '',
     responseTime: null,
-    tokens: 0
+    tokens: 0,
+    inputTokens: 0,
+    outputTokens: 0
   })
 
   try {
@@ -195,6 +203,8 @@ const send = async () => {
               messages.value[msgIndex].content = data.content;
               messages.value[msgIndex].responseTime = data.responseTime;
               messages.value[msgIndex].tokens = data.tokens;
+              messages.value[msgIndex].inputTokens = data.inputTokens;
+              messages.value[msgIndex].outputTokens = data.outputTokens;
             } else if (currentEvent === 'error') {
               messages.value[msgIndex].content = 'Error: ' + data.error;
             }

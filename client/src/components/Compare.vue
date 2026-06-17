@@ -27,8 +27,18 @@
           </tr>
           <tr class="border-b border-slate-800/50">
             <td class="p-4 font-bold text-slate-500">Tokens</td>
-            <td class="p-4 text-white font-mono">{{ comparisonData.A?.tokens || '-' }}</td>
-            <td class="p-4 text-white font-mono">{{ comparisonData.B?.tokens || '-' }}</td>
+            <td class="p-4 text-white font-mono">
+              <div v-if="comparisonData.A?.inputTokens !== undefined" class="text-xs">
+                In: {{ comparisonData.A.inputTokens }} / Out: {{ comparisonData.A.outputTokens }}
+              </div>
+              <div v-else>{{ comparisonData.A?.tokens || '-' }}</div>
+            </td>
+            <td class="p-4 text-white font-mono">
+              <div v-if="comparisonData.B?.inputTokens !== undefined" class="text-xs">
+                In: {{ comparisonData.B.inputTokens }} / Out: {{ comparisonData.B.outputTokens }}
+              </div>
+              <div v-else>{{ comparisonData.B?.tokens || '-' }}</div>
+            </td>
           </tr>
           <tr class="border-b border-slate-800/50">
             <td class="p-4 font-bold text-slate-500">Speed</td>
@@ -202,7 +212,7 @@ const compare = async () => {
         })
         return res.data
     } catch (e) { 
-        return { content: 'Error: ' + e.message, provider: 'Error', model: model || 'N/A', responseTime: 0, tokens: 0 } 
+        return { content: 'Error: ' + e.message, provider: 'Error', model: model || 'N/A', responseTime: 0, tokens: 0, inputTokens: 0, outputTokens: 0 } 
     }
   }
 
