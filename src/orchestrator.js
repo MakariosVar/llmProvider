@@ -125,6 +125,9 @@ class Orchestrator {
                     providerManager.clearRateLimit(provider.id, model);
                     circuitBreaker.recordSuccess(provider.id);
 
+                    // Explicitly log the usage to persistence for image providers
+                    statusPersistence.updateUsage(provider.id, providerManager.usage[provider.id].requestsToday, providerManager.usage[provider.id].requestsThisMinute);
+
                     return {
                         provider: provider.name,
                         model: model,

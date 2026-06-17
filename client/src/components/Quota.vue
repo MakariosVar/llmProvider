@@ -110,7 +110,11 @@
                         <div class="flex justify-between items-center text-[10px] font-mono">
                             <span class="font-black">Requests</span>
                             <span class="font-black truncate ml-2">
-                                {{ (((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsRemaining || 0)) }}
+                                {{ 
+                                    (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) 
+                                    ? (((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsRemaining || 0))
+                                    : (p.usage?.requestsToday || 0)
+                                }}
                                 <span class="opacity-20 mx-0.5">/</span>
                                 {{ (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.requestsLimit ?? p.rpm }}
                             </span>
@@ -118,7 +122,11 @@
                         <div class="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 p-[1px]">
                             <div class="h-full block rounded-full transition-all duration-500" 
                                 :class="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? 'bar-fill' : 'bg-slate-200'"
-                                :style="{ width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? (((((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit || 1) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsRemaining || 0)) / ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit || 1)) * 100) + '%' : '0%' }"></div>
+                                :style="{ 
+                                    width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) 
+                                        ? (((((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsRemaining || 0)) / Math.max(1, ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).requestsLimit || 1))) * 100) + '%' 
+                                        : (((p.usage?.requestsToday || 0) / Math.max(1, (p.rpm || 1))) * 100) + '%' 
+                                }"></div>
                         </div>
                     </div>
 
@@ -127,7 +135,9 @@
                         <div class="flex justify-between items-center text-[10px] font-mono text-[var(--text-color)]">
                             <span class="font-black opacity-80">Tokens</span>
                             <span class="font-black truncate ml-2">
-                                {{ formatNumber(((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensRemaining || 0)) }}
+                                {{ formatNumber((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) 
+                                    ? (((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensRemaining || 0))
+                                    : 0) }}
                                 <span class="opacity-20 mx-0.5">/</span>
                                 {{ formatNumber((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit) ?? formatNumber(p.daily_limit) }}
                             </span>
@@ -135,7 +145,11 @@
                         <div class="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 p-[1px]">
                             <div class="h-full block rounded-full transition-all duration-500" 
                                 :class="(p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? 'bar-fill' : 'bg-slate-200'"
-                                :style="{ width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) ? (((((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 1) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensRemaining || 0)) / ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 1)) * 100) + '%' : '0%' }"></div>
+                                :style="{ 
+                                    width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) 
+                                        ? (((((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensRemaining || 0)) / Math.max(1, ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 1))) * 100) + '%' 
+                                        : '0%' 
+                                }"></div>
                         </div>
                     </div>
                 </div>
@@ -183,7 +197,17 @@ const fetchData = async () => {
 }
 
 const allProviders = computed(() => {
-    return [...providers.value].sort((a, b) => a.priority - b.priority)
+    return [...providers.value].sort((a, b) => {
+        // First check if one is an image provider
+        const aIsImage = a.type === 'image' || (a.imageModels && a.imageModels.length > 0 && (!a.models || a.models.length === 0));
+        const bIsImage = b.type === 'image' || (b.imageModels && b.imageModels.length > 0 && (!b.models || b.models.length === 0));
+
+        if (aIsImage && !bIsImage) return 1;
+        if (!aIsImage && bIsImage) return -1;
+        
+        // If same category, sort by priority
+        return a.priority - b.priority;
+    });
 })
 
 const totalLiveRpmCapacity = computed(() => {

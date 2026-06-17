@@ -47,6 +47,21 @@ class ProviderManager {
                 requestsLimit: 'x-ratelimit-limit',
                 requestsRemaining: 'x-ratelimit-remaining',
                 requestsReset: 'x-ratelimit-reset'
+            },
+            cerebras: {
+                requestsLimit: 'x-ratelimit-limit-requests-minute',
+                requestsRemaining: 'x-ratelimit-remaining-requests-minute',
+                requestsReset: 'x-ratelimit-reset-requests-minute',
+                tokensLimit: 'x-ratelimit-limit-tokens-minute',
+                tokensRemaining: 'x-ratelimit-remaining-tokens-minute',
+                tokensReset: 'x-ratelimit-reset-tokens-minute'
+            },
+            huggingface: {
+                // HuggingFace uses standardized RateLimit headers
+                // Mapping handled via 'api' in RateLimit/RateLimit-Policy headers
+                // This requires custom parsing logic in updateLiveRateLimits for these specific headers
+                requestsLimit: 'ratelimit-policy', 
+                requestsRemaining: 'ratelimit-remaining'
             }
         };
 
@@ -176,7 +191,8 @@ class ProviderManager {
                 ...p,
                 modelStatuses: this.modelStatus[p.id] || {},
                 liveRateLimits: this.liveRateLimits[p.id] || {},
-                isLive: this.isLiveTrackingSupported(p.id)
+                isLive: this.isLiveTrackingSupported(p.id),
+                usage: this.usage[p.id] || { requestsToday: 0 }
             };
         });
     }
@@ -186,16 +202,43 @@ class ProviderManager {
         const map = this.headerMapping[providerId];
         if (!map) return;
 
-        const data = {
-            requestsLimit: headers[map.requestsLimit] ? parseInt(headers[map.requestsLimit]) : null,
-            requestsRemaining: headers[map.requestsRemaining] ? parseInt(headers[map.requestsRemaining]) : null,
-            requestsReset: headers[map.requestsReset] ? this.parseResetTime(headers[map.requestsReset]) : null,
-            tokensLimit: headers[map.tokensLimit] ? parseInt(headers[map.tokensLimit]) : null,
-            tokensRemaining: headers[map.tokensRemaining] ? parseInt(headers[map.tokensRemaining]) : null,
-            tokensReset: headers[map.tokensReset] ? this.parseResetTime(headers[map.tokensReset]) : null
-        };
+        let data;
 
-        if (data.requestsRemaining !== null || data.tokensRemaining !== null) {
+        if (providerId === 'huggingface') {
+            // Standard RateLimit header parsing: "api";r=[remaining];t=[reset]
+            const rateLimitHeader = headers['ratelimit'];
+            const rateLimitPolicyHeader = headers['ratelimit-policy'];
+            
+            data = {
+                requestsLimit: null,
+                requestsRemaining: null,
+                requestsReset: null
+            };
+
+            if (rateLimitPolicyHeader) {
+                // "fixed window";"api";q=500;w=300
+                const qMatch = rateLimitPolicyHeader.match(/q=(\d+)/);
+                if (qMatch) data.requestsLimit = parseInt(qMatch[1]);
+            }
+            if (rateLimitHeader) {
+                // "api";r=489;t=189
+                const rMatch = rateLimitHeader.match(/r=(\d+)/);
+                const tMatch = rateLimitHeader.match(/t=(\d+)/);
+                if (rMatch) data.requestsRemaining = parseInt(rMatch[1]);
+                if (tMatch) data.requestsReset = Date.now() + (parseInt(tMatch[1]) * 1000);
+            }
+        } else {
+            data = {
+                requestsLimit: headers[map.requestsLimit] ? parseInt(headers[map.requestsLimit]) : null,
+                requestsRemaining: headers[map.requestsRemaining] ? parseInt(headers[map.requestsRemaining]) : null,
+                requestsReset: headers[map.requestsReset] ? this.parseResetTime(headers[map.requestsReset]) : null,
+                tokensLimit: headers[map.tokensLimit] ? parseInt(headers[map.tokensLimit]) : null,
+                tokensRemaining: headers[map.tokensRemaining] ? parseInt(headers[map.tokensRemaining]) : null,
+                tokensReset: headers[map.tokensReset] ? this.parseResetTime(headers[map.tokensReset]) : null
+            };
+        }
+
+        if (data.requestsRemaining !== null || data.tokensRemaining !== null || (providerId === 'huggingface' && data.requestsLimit !== null)) {
             if (!this.liveRateLimits[providerId]) this.liveRateLimits[providerId] = {};
             this.liveRateLimits[providerId][modelName] = { ...data, lastUpdated: Date.now() };
             statusPersistence.upsertLiveRateLimit({ ...data, providerId, modelName });
