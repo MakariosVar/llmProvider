@@ -7,3 +7,8 @@ yarn.lock
 .git
 *.db
 .hg
+
+!README.md
+*.md
+
+status_db.*
