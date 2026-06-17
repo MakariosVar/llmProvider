@@ -1,0 +1,8 @@
+node_modules
+dist
+.vscode
+.db
+.git
+
+syntax: regexp
+^\.env(?!\.example$)

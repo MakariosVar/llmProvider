@@ -1,11 +1,9 @@
-/.env
-/node_modules
-status_db.json
-status.db
-status.db-journal
-status.db-wal
-status.db-shm
-status_db.json.backup
+node_modules
+yarn.lock
 
-!README.md
-*.md
+.env
+!.env.example
+
+.git
+*.db
+.hg
