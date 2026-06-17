@@ -189,6 +189,7 @@ class ProviderManager {
         return Object.values(this.providers).map(p => {
             return {
                 ...p,
+                daily_token_limit: p.daily_token_limit,
                 modelStatuses: this.modelStatus[p.id] || {},
                 liveRateLimits: this.liveRateLimits[p.id] || {},
                 isLive: this.isLiveTrackingSupported(p.id),

@@ -193,7 +193,7 @@
                                     ? (((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensRemaining || 0))
                                     : 0) }}
                                 <span class="opacity-20 mx-0.5">/</span>
-                                {{ formatNumber((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit) ?? formatNumber(p.daily_limit) }}
+                                {{ formatNumber((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide'])?.tokensLimit) ?? formatNumber(p.daily_token_limit) }}
                             </span>
                         </div>
                         <div class="h-2 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 p-[1px]">
@@ -202,7 +202,7 @@
                                 :style="{ 
                                     width: (p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']) 
                                         ? (((((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 0) - ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensRemaining || 0)) / Math.max(1, ((p.liveRateLimits?.[model] || p.liveRateLimits?.['providerWide']).tokensLimit || 1))) * 100) + '%' 
-                                        : '0%' 
+                                        : (((0) / Math.max(1, (p.daily_token_limit || 1))) * 100) + '%' 
                                 }"></div>
                         </div>
                     </div>
@@ -441,8 +441,8 @@ const totalCapacityTokens = computed(() => {
                 if (limit.tokensLimit) total += limit.tokensLimit
              })
         } else {
-             // Fallback to static daily_limit
-             total += (p.daily_limit || 0)
+             // Fallback to static daily_token_limit
+             total += (p.daily_token_limit || 0)
         }
     })
     return total

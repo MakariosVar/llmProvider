@@ -13,15 +13,16 @@ export default {
             name: 'Groq',
             key: process.env.GROQ_API_KEY,
             models: [
-                'meta-llama/llama-4-scout-17b-16e-instruct', // Verified PASS
-                'llama-3.3-70b-versatile',                  // Verified in listing
-                'openai/gpt-oss-120b',                       // Verified PASS
-                'qwen/qwen3-32b',                            // Verified PASS
+                'meta-llama/llama-4-scout-17b-16e-instruct',
+                'llama-3.3-70b-versatile',
+                'openai/gpt-oss-120b',
+                'qwen/qwen3-32b',
                 'openai/gpt-oss-20b',
                 'llama-3.1-8b-instant'
             ],
-            rpm: 60,
-            daily_limit: 2000,
+            rpm: 30,
+            daily_limit: 14400,
+            daily_token_limit: 1440000,
             priority: 1,
             heavy_usage: 90,
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
@@ -30,11 +31,12 @@ export default {
             name: 'Cerebras',
             key: process.env.CEREBRAS_API_KEY,
             models: [
-                'gpt-oss-120b',   // Verified PASS
-                'zai-glm-4.7',     // Verified PASS
+                'gpt-oss-120b',
+                'zai-glm-4.7',
             ],
-            rpm: 30,
-            daily_limit: 1000000, // 1M tokens/day free
+            rpm: 5,
+            daily_limit: 1000,
+            daily_token_limit: 1000000,
             priority: 2,
             heavy_usage: 92,
             endpoint: 'https://api.cerebras.ai/v1/chat/completions'
@@ -43,8 +45,9 @@ export default {
             name: 'Mistral AI',
             key: process.env.MISTRAL_API_KEY || null,
             models: ['mistral-small-latest', 'open-mistral-nemo'],
-            rpm: 30,
-            daily_limit: 1000000000,
+            rpm: 2,
+            daily_limit: 33000000,
+            daily_token_limit: 33000000,
             priority: 3,
             heavy_usage: 65,
             endpoint: 'https://api.mistral.ai/v1/chat/completions'
@@ -58,8 +61,9 @@ export default {
                 'Meta-Llama-3.1-405B-Instruct',
                 'Meta-Llama-3.1-8B-Instruct'
             ],
-            rpm: 15,
-            daily_limit: 1000,
+            rpm: 0,
+            daily_limit: 0,
+            daily_token_limit: 0,
             priority: 4,
             heavy_usage: 78,
             endpoint: 'https://models.inference.ai.azure.com/chat/completions',
@@ -72,11 +76,12 @@ export default {
             name: 'Google Gemini',
             key: process.env.GEMINI_API_KEY,
             models: [
-                'gemini-3.5-flash',       // Latest free stable (May 2026)
-                'gemini-3.1-flash-lite',  // Efficiency leader
+                'gemini-3.5-flash',
+                'gemini-3.1-flash-lite',
             ],
-            rpm: 15,                      // Rate limits for free tier
+            rpm: 10,
             daily_limit: 1500,
+            daily_token_limit: 250000,
             priority: 5,
             heavy_usage: 95,
             endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
@@ -86,7 +91,8 @@ export default {
             key: process.env.HF_API_KEY,
             models: ['meta-llama/Meta-Llama-3-8B-Instruct', 'Qwen/Qwen2.5-7B-Instruct'],
             rpm: 5,
-            daily_limit: 30,
+            daily_limit: 100,
+            daily_token_limit: 100000,
             priority: 6,
             heavy_usage: 60,
             endpoint: 'https://router.huggingface.co/v1/chat/completions'
@@ -96,7 +102,8 @@ export default {
             key: process.env.COHERE_API_KEY,
             models: ['command-a-plus-05-2026', 'command-a-03-2025'],
             rpm: 20,
-            daily_limit: 1000,
+            daily_limit: 33,
+            daily_token_limit: 10000,
             priority: 7,
             heavy_usage: 72,
             endpoint: 'https://api.cohere.ai/v2/chat'
@@ -108,7 +115,8 @@ export default {
                 'openrouter/auto',
             ],
             rpm: 20,
-            daily_limit: 200,
+            daily_limit: 50,
+            daily_token_limit: 50000,
             priority: 8,
             heavy_usage: 70,
             endpoint: 'https://openrouter.ai/api/v1/chat/completions'
@@ -125,6 +133,7 @@ export default {
             ],
             rpm: 30,
             daily_limit: 10000,
+            daily_token_limit: 10000,
             priority: 9,
             heavy_usage: 80,
             endpoint: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/{model}',
@@ -141,19 +150,20 @@ export default {
                 'openai/gpt-oss-20b',
                 'meta-llama/llama-3.1-8b-instruct',
             ],
-            rpm: 10,
-            daily_limit: 300,
+            rpm: 0,
+            daily_limit: 0,
+            daily_token_limit: 0,
             priority: 10,
             heavy_usage: 72,
             endpoint: 'https://api.novita.ai/v3/openai/chat/completions'
         },
-
         ollama: {
             name: 'Ollama (Local)',
             host: process.env.OLLAMA_HOST || 'http://localhost:11434',
-            models: ['llama3.1'], // Dynamic check later?
+            models: ['llama3.1'],
             rpm: 1000,
             daily_limit: 100000,
+            daily_token_limit: 100000000,
             priority: 15,
             heavy_usage: 60,
             endpoint: '{host}/v1/chat/completions'
@@ -164,6 +174,7 @@ export default {
             models: ['flux', 'turbo'],
             rpm: 30,
             daily_limit: 1000,
+            daily_token_limit: 10000,
             priority: 1,
             endpoint: 'https://image.pollinations.ai/prompt/{prompt}?model={model}&nologo=true'
         }
