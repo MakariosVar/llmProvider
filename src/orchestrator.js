@@ -1,3 +1,4 @@
+import { countTokens } from './utils/tokenCounter.js';
 import axios from 'axios';
 import http from 'http';
 import https from 'https';
@@ -228,8 +229,9 @@ class Orchestrator {
                     // If it succeeds, clear any potential rate limit (though it shouldn't be there if we checked)
                     providerManager.clearRateLimit(provider.id, model);
 
-                    const inputTokens = Math.ceil((prompt.length + (systemPrompt ? systemPrompt.length : 0) + (history ? JSON.stringify(history).length : 0)) / 4);
-                    const outputTokens = Math.ceil(response.length / 4);
+                    const fullPrompt = (systemPrompt ? systemPrompt + "\n" : "") + prompt + (history ? JSON.stringify(history) : "");
+                    const inputTokens = countTokens(fullPrompt);
+                    const outputTokens = countTokens(response);
                     // Record success in circuit breaker
                     circuitBreaker.recordSuccess(provider.id);
 
@@ -615,8 +617,9 @@ class Orchestrator {
 
                     const endTime = Date.now();
                     const responseTime = endTime - startTime;
-                    const inputTokens = Math.ceil((prompt.length + (systemPrompt ? systemPrompt.length : 0) + (history ? JSON.stringify(history).length : 0)) / 4);
-                    const outputTokens = Math.ceil(fullContent.length / 4);
+                    const fullPrompt = (systemPrompt ? systemPrompt + "\n" : "") + prompt + (history ? JSON.stringify(history) : "");
+                    const inputTokens = countTokens(fullPrompt);
+                    const outputTokens = countTokens(fullContent);
 
                     providerManager.incrementUsage(provider.id);
                     providerManager.updateStatus(provider.id, 'online');
