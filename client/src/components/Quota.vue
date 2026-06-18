@@ -30,13 +30,13 @@
           <span class="text-xs font-bold text-[var(--text-color)] opacity-40">models</span>
         </div>
       </div>
-      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
-        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Throttled</span>
-        <div class="flex items-baseline gap-2">
-          <span class="text-3xl font-black text-[var(--text-color)]">{{ rateLimitedCount }}</span>
-          <span v-if="rateLimitedCount > 0" class="text-xs font-bold opacity-60 text-rose-500">⚠</span>
-          <span v-else class="text-xs font-bold text-emerald-500">✓</span>
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-emerald-500/50">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Available Model</span>
+        <div class="flex flex-col" v-if="preferredModel">
+          <span class="text-xs font-black text-[var(--text-color)] truncate">{{ preferredModel.split(' / ')[0] }}</span>
+          <span class="text-[10px] font-mono font-bold text-[var(--text-color)] opacity-60 truncate">{{ preferredModel.split(' / ')[1] }}</span>
         </div>
+        <div v-else class="text-xs font-black text-[var(--text-color)] opacity-30">—</div>
       </div>
 
       <!-- Row 2: Live Capacity (with top accent border) -->
@@ -108,8 +108,7 @@
             <!-- Status -->
             <td class="p-4 border-r border-[var(--border-color)]/10">
               <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full shrink-0" :class="getStatusColor(p.modelStatuses?.[model]?.status)"></span>
-                <span class="text-[9px] font-black text-[var(--text-color)] opacity-60 uppercase tracking-widest truncate">
+                <span class="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border-2" :class="getModelStatusClass(p.modelStatuses?.[model])">
                   {{ p.modelStatuses?.[model]?.status || 'unknown' }}
                 </span>
                 <span v-if="getLiveData(p, model) && isRateLimited(getLiveData(p, model))" 
@@ -248,6 +247,19 @@ const liveModelCount = computed(() => {
     return count
 })
 
+const preferredModel = computed(() => {
+    for (const p of allProviders.value) {
+        if (p.modelStatuses) {
+            for (const [model, status] of Object.entries(p.modelStatuses)) {
+                if (status.status === 'online') {
+                    return `${p.name} / ${model}`
+                }
+            }
+        }
+    }
+    return null
+})
+
 const rateLimitedCount = computed(() => {
     let count = 0
     providers.value.forEach(p => {
@@ -340,10 +352,13 @@ const getPercent = (liveData, type) => {
     return Math.min(100, Math.round((used / limit) * 100))
 }
 
-const getStatusColor = (status) => {
-    if (status === 'online') return 'bg-emerald-500'
-    if (status === 'error' || status === 'offline') return 'bg-rose-500'
-    return 'bg-[var(--text-color)] opacity-30'
+const getModelStatusClass = (mStatus) => {
+  const status = (mStatus?.status || '').toLowerCase()
+
+  if (status === 'online') return 'status-online'
+  if (status === 'error') return 'status-error'
+  if (status === 'rate_limited') return 'status-rate-limited'
+  return 'status-default'
 }
 
 const isRateLimited = (limit) => {
