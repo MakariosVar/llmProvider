@@ -6,22 +6,69 @@
       <p class="text-[var(--text-color)] opacity-70">Live rate limit data extracted from provider response headers. Only updates after actual requests.</p>
     </div>
 
-    <!-- Summary Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Summary Stats Row 1: Infrastructure -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
         <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Active Providers</span>
         <span class="text-3xl font-black text-[var(--text-color)]">{{ providers.length }}</span>
       </div>
       <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
-        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Models With Live Data</span>
-        <span class="text-3xl font-black text-[var(--text-color)]">{{ liveModelCount }}</span>
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Total Models</span>
+        <span class="text-3xl font-black text-[var(--text-color)]">{{ totalModelCount }}</span>
       </div>
       <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
-        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Currently Throttled</span>
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Models Online</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-black text-[var(--text-color)]">{{ onlineModelCount }}</span>
+          <span class="text-xs font-bold text-[var(--text-color)] opacity-40">/ {{ totalModelCount }}</span>
+        </div>
+      </div>
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Live Tracked</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-black text-[var(--text-color)]">{{ liveModelCount }}</span>
+          <span class="text-xs font-bold text-[var(--text-color)] opacity-40">models</span>
+        </div>
+      </div>
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Throttled</span>
         <div class="flex items-baseline gap-2">
           <span class="text-3xl font-black text-[var(--text-color)]">{{ rateLimitedCount }}</span>
           <span v-if="rateLimitedCount > 0" class="text-xs font-bold opacity-60 text-rose-500">⚠</span>
+          <span v-else class="text-xs font-bold text-emerald-500">✓</span>
         </div>
+      </div>
+
+      <!-- Row 2: Live Capacity (with top accent border) -->
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-[var(--accent-bg)]">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Configured RPM</span>
+        <span class="text-3xl font-black text-[var(--text-color)]">{{ formatNumber(totalConfiguredRpm) }}</span>
+      </div>
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-[var(--accent-bg)]">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Live RPM Remaining</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-black text-[var(--text-color)]">{{ formatNumber(aggregateLive.rpmRemaining) }}</span>
+          <span class="text-xs font-bold text-[var(--text-color)] opacity-40">/ {{ formatNumber(aggregateLive.rpmLimit) }}</span>
+        </div>
+      </div>
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-[var(--accent-bg)]">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Live TPM Remaining</span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-black text-[var(--text-color)]">{{ formatNumber(aggregateLive.tpmRemaining) }}</span>
+          <span class="text-xs font-bold text-[var(--text-color)] opacity-40">/ {{ formatNumber(aggregateLive.tpmLimit) }}</span>
+        </div>
+      </div>
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-[var(--accent-bg)]">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Most Constrained</span>
+        <div class="truncate">
+          <span v-if="mostConstrained" class="text-lg font-black text-[var(--text-color)] truncate block">{{ mostConstrained.percent }}%</span>
+          <span v-if="mostConstrained" class="text-[9px] font-bold text-[var(--text-color)] opacity-40 truncate block">{{ mostConstrained.name }}</span>
+          <span v-else class="text-lg font-black text-[var(--text-color)] opacity-30">—</span>
+        </div>
+      </div>
+      <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-[var(--accent-bg)]">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Next Reset</span>
+        <span class="text-3xl font-black text-[var(--text-color)]">{{ nextReset }}</span>
       </div>
     </div>
 
@@ -173,6 +220,26 @@ const allProviders = computed(() => {
     });
 })
 
+const totalModelCount = computed(() => {
+    let count = 0
+    providers.value.forEach(p => {
+        count += (p.models || []).length + (p.imageModels || []).length
+    })
+    return count
+})
+
+const onlineModelCount = computed(() => {
+    let count = 0
+    providers.value.forEach(p => {
+        if (p.modelStatuses) {
+            Object.values(p.modelStatuses).forEach(s => {
+                if (s.status === 'online') count++
+            })
+        }
+    })
+    return count
+})
+
 const liveModelCount = computed(() => {
     let count = 0
     providers.value.forEach(p => {
@@ -191,6 +258,63 @@ const rateLimitedCount = computed(() => {
         }
     })
     return count
+})
+
+const totalConfiguredRpm = computed(() => {
+    return providers.value.reduce((sum, p) => sum + (p.rpm || 0), 0)
+})
+
+const aggregateLive = computed(() => {
+    let rpmLimit = 0, rpmRemaining = 0, tpmLimit = 0, tpmRemaining = 0
+    providers.value.forEach(p => {
+        if (p.liveRateLimits) {
+            Object.values(p.liveRateLimits).forEach(limit => {
+                if (limit.requestsLimit !== null && limit.requestsLimit !== undefined) {
+                    rpmLimit += limit.requestsLimit
+                    rpmRemaining += (limit.requestsRemaining || 0)
+                }
+                if (limit.tokensLimit !== null && limit.tokensLimit !== undefined) {
+                    tpmLimit += limit.tokensLimit
+                    tpmRemaining += (limit.tokensRemaining || 0)
+                }
+            })
+        }
+    })
+    return { rpmLimit, rpmRemaining, tpmLimit, tpmRemaining }
+})
+
+const mostConstrained = computed(() => {
+    let worst = null
+    providers.value.forEach(p => {
+        if (p.liveRateLimits) {
+            Object.entries(p.liveRateLimits).forEach(([model, limit]) => {
+                if (limit.requestsLimit && limit.requestsLimit > 0) {
+                    const used = ((limit.requestsLimit - (limit.requestsRemaining || 0)) / limit.requestsLimit) * 100
+                    if (!worst || used > worst.percent) {
+                        worst = { name: model, percent: Math.round(used) }
+                    }
+                }
+            })
+        }
+    })
+    return worst
+})
+
+const nextReset = computed(() => {
+    let earliest = Infinity
+    providers.value.forEach(p => {
+        if (p.liveRateLimits) {
+            Object.values(p.liveRateLimits).forEach(limit => {
+                if (limit.requestsReset && limit.requestsReset > now.value && limit.requestsReset < earliest) {
+                    earliest = limit.requestsReset
+                }
+                if (limit.tokensReset && limit.tokensReset > now.value && limit.tokensReset < earliest) {
+                    earliest = limit.tokensReset
+                }
+            })
+        }
+    })
+    return earliest === Infinity ? '—' : formatCountdown(earliest)
 })
 
 // Get live rate limit data for a specific model (no providerWide fallback — it's dead code)
