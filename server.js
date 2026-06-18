@@ -185,7 +185,22 @@ app.get('/api/status', (req, res) => {
 });
 
 app.get('/api/usage/stats', (req, res) => {
-    res.json(statusPersistence.getStats());
+    const stats = statusPersistence.getStats();
+    res.json({
+        ...stats,
+        providerLimits: Object.keys(config.providers).reduce((acc, key) => {
+            acc[key] = {
+                daily_limit: config.providers[key].daily_limit,
+                daily_token_limit: config.providers[key].daily_token_limit
+            };
+            return acc;
+        }, {})
+    });
+});
+
+app.get('/api/usage/stats/:timeframe', (req, res) => {
+    const { timeframe } = req.params;
+    res.json(statusPersistence.getStatsByTimeframe(timeframe));
 });
 
 app.get('/api/usage/history', (req, res) => {

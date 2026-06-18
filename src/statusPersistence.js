@@ -294,6 +294,35 @@ class StatusPersistence {
         }
     }
 
+    getStatsByTimeframe(timeframe) {
+        try {
+            const now = Date.now();
+            let timeAgo = 0;
+            if (timeframe === 'Daily') timeAgo = now - (24 * 60 * 60 * 1000);
+            else if (timeframe === 'Weekly') timeAgo = now - (7 * 24 * 60 * 60 * 1000);
+            else if (timeframe === 'Monthly') timeAgo = now - (30 * 24 * 60 * 60 * 1000);
+            else return this.getStats();
+
+            const query = `
+                SELECT 
+                    COUNT(*) as totalRequests,
+                    SUM(input_tokens) as totalInputTokens,
+                    SUM(output_tokens) as totalOutputTokens
+                FROM request_history 
+                WHERE timestamp > ?
+            `;
+            const stats = this.db.prepare(query).get(timeAgo);
+            return {
+                totalRequests: stats.totalRequests || 0,
+                totalInputTokens: stats.totalInputTokens || 0,
+                totalOutputTokens: stats.totalOutputTokens || 0
+            };
+        } catch (error) {
+            console.error(`Failed to get stats for timeframe ${timeframe}:`, error.message);
+            return { totalRequests: 0, totalInputTokens: 0, totalOutputTokens: 0 };
+        }
+    }
+
     getHistory(limit = 100, offset = 0, filters = {}) {
         try {
             let query = 'SELECT * FROM request_history';

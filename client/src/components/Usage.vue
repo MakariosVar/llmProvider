@@ -15,6 +15,28 @@
       </button>
     </div>
 
+    <!-- Capacity Overview -->
+    <div v-if="stats && stats.providerLimits" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div v-for="type in ['Requests', 'Tokens']" :key="type" class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-4">
+            <h2 class="text-sm font-black text-[var(--text-color)] opacity-70 uppercase tracking-[0.2em]">{{ type }} Capacity Usage</h2>
+            
+            <div v-for="timeframe in ['Daily', 'Weekly', 'Monthly']" :key="timeframe" class="space-y-1.5">
+                <div class="flex justify-between items-center text-[10px] font-mono text-[var(--text-color)]">
+                    <span class="font-black opacity-60 uppercase">{{ timeframe }}</span>
+                    <span class="font-black">
+                        {{ formatNumber(formatCapacityValue(type, timeframe, 'used')) }}
+                        <span class="opacity-20 mx-0.5">/</span>
+                        {{ formatNumber(formatCapacityValue(type, timeframe, 'limit')) }}
+                    </span>
+                </div>
+                <div class="h-2 w-full bg-[var(--border-color)]/10 rounded-full overflow-hidden border border-[var(--border-color)]/10 p-[1px]">
+                  <div class="h-full block rounded-full transition-all duration-500 bg-[var(--accent-bg)]"
+                       :style="{ width: calculatePercentage(type, timeframe) + '%' }"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Stats Grid -->
     <div v-if="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <div v-for="stat in summaryStats" :key="stat.label" class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2">
@@ -321,6 +343,11 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const isModalOpen = ref(false)
 const stats = ref(null)
+const timeFilteredStats = ref({
+    Daily: { requests: 0, tokens: 0 },
+    Weekly: { requests: 0, tokens: 0 },
+    Monthly: { requests: 0, tokens: 0 }
+})
 const pricingData = ref([])
 const history = ref([])
 const totalHistory = ref(0)
@@ -393,6 +420,45 @@ const summaryStats = computed(() => {
     { label: 'Avg Latency', value: s.avgLatency || 0, suffix: 'ms' },
   ]
 })
+
+const getLimits = computed(() => {
+    if (!stats.value || !stats.value.providerLimits) return { requests: 0, tokens: 0 }
+    return Object.values(stats.value.providerLimits).reduce((acc, p) => ({
+        requests: acc.requests + (p.daily_limit || 0),
+        tokens: acc.tokens + (p.daily_token_limit || 0)
+    }), { requests: 0, tokens: 0 })
+})
+
+const getUsed = (type, timeframe) => {
+    if (!timeFilteredStats.value[timeframe]) return 0
+    return timeFilteredStats.value[timeframe][type.toLowerCase()] || 0
+}
+
+const formatCapacityValue = (type, timeframe, key) => {
+    const limits = getLimits.value[type.toLowerCase()]
+    const multiplier = timeframe === 'Daily' ? 1 : (timeframe === 'Weekly' ? 7 : 30)
+    const limit = limits * multiplier
+    
+    if (key === 'limit') return limit
+    
+    return Math.min(getUsed(type, timeframe), limit)
+}
+
+const calculatePercentage = (type, timeframe) => {
+    const limits = getLimits.value[type.toLowerCase()]
+    const multiplier = timeframe === 'Daily' ? 1 : (timeframe === 'Weekly' ? 7 : 30)
+    const limit = limits * multiplier
+    const used = getUsed(type, timeframe)
+    return limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
+}
+
+const formatNumber = (num) => {
+    if (!num && num !== 0) return '0'
+    if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B'
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
+    return num.toLocaleString()
+}
 
 const tokenStats = computed(() => {
   if (!stats.value || !stats.value.summary) return []
@@ -606,12 +672,23 @@ const fetchHistory = async () => {
 
 const fetchData = async () => {
   try {
-    const [statsRes, pricingRes] = await Promise.all([
+    const [statsRes, pricingRes, dailyRes, weeklyRes, monthlyRes] = await Promise.all([
       axios.get('/api/usage/stats'),
-      axios.get('/api/usage/pricing')
+      axios.get('/api/usage/pricing'),
+      axios.get('/api/usage/stats/Daily'),
+      axios.get('/api/usage/stats/Weekly'),
+      axios.get('/api/usage/stats/Monthly')
     ])
+    
     stats.value = statsRes.data
     pricingData.value = pricingRes.data
+    
+    timeFilteredStats.value = {
+        Daily: { requests: dailyRes.data.totalRequests, tokens: (dailyRes.data.totalInputTokens || 0) + (dailyRes.data.totalOutputTokens || 0) },
+        Weekly: { requests: weeklyRes.data.totalRequests, tokens: (weeklyRes.data.totalInputTokens || 0) + (weeklyRes.data.totalOutputTokens || 0) },
+        Monthly: { requests: monthlyRes.data.totalRequests, tokens: (monthlyRes.data.totalInputTokens || 0) + (monthlyRes.data.totalOutputTokens || 0) }
+    }
+    
     console.log("DEBUG: API Stats Data:", statsRes.data);
     await Promise.all([
         fetchHistory(),
