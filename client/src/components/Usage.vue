@@ -301,6 +301,8 @@
         :chartOptions="chartOptions" 
         :chartKey="chartKey" 
         :providers="providers"
+        v-model:chartFilters="chartFilters"
+        :timeSeriesData="timeSeriesData"
     />
   </div>
 </template>
