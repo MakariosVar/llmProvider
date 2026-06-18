@@ -2,7 +2,7 @@
   <div v-if="isOpen" class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4" @click.self="$emit('update:isOpen', false)">
     <div class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-3xl p-6 w-full max-w-7xl max-h-[95vh] overflow-y-auto shadow-2xl custom-scrollbar">
       <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-black text-[var(--text-color)] tracking-tighter uppercase">Enterprise Analytics</h2>
+        <h2 class="text-xl font-black text-[var(--text-color)] tracking-tighter uppercase">Charts</h2>
         <button @click="$emit('update:isOpen', false)" class="text-[var(--text-color)] opacity-50 hover:opacity-100">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -13,7 +13,7 @@
       <div v-if="stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Performance Trends -->
         <div class="col-span-1 md:col-span-2 lg:col-span-2 bg-[var(--border-color)]/10 p-4 rounded-xl h-56 flex flex-col">
-          <h3 class="text-[10px] font-black opacity-50 uppercase tracking-widest mb-2">Traffic Trend</h3>
+          <h3 class="text-[10px] font-black opacity-50 uppercase tracking-widest mb-2">Traffic</h3>
           <div class="flex-1 min-h-0">
             <Line :key="chartKey + '-modal'" :data="themeAwareChartData" :options="getThemeOptions({ legend: { display: false } })" />
           </div>
