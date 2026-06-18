@@ -203,6 +203,15 @@ class ProviderManager {
         const map = this.headerMapping[providerId];
         if (!map) return;
 
+        // Helper: parse header value to int, returning null only if header is truly absent
+        const parseHeader = (headerName) => {
+            if (!headerName) return null;
+            const val = headers[headerName];
+            if (val === undefined || val === null || val === '') return null;
+            const parsed = parseInt(val);
+            return isNaN(parsed) ? null : parsed;
+        };
+
         let data;
 
         if (providerId === 'huggingface') {
@@ -218,28 +227,39 @@ class ProviderManager {
 
             if (rateLimitPolicyHeader) {
                 // "fixed window";"api";q=500;w=300
+                // Also handle format: 500;w=300
                 const qMatch = rateLimitPolicyHeader.match(/q=(\d+)/);
+                const directMatch = rateLimitPolicyHeader.match(/^(\d+);/);
                 if (qMatch) data.requestsLimit = parseInt(qMatch[1]);
+                else if (directMatch) data.requestsLimit = parseInt(directMatch[1]);
             }
             if (rateLimitHeader) {
-                // "api";r=489;t=189
+                // "api";r=489;t=189  OR  r=489;t=189  OR just a number
                 const rMatch = rateLimitHeader.match(/r=(\d+)/);
                 const tMatch = rateLimitHeader.match(/t=(\d+)/);
                 if (rMatch) data.requestsRemaining = parseInt(rMatch[1]);
                 if (tMatch) data.requestsReset = Date.now() + (parseInt(tMatch[1]) * 1000);
+                
+                // Some implementations just return a number
+                if (!rMatch && !isNaN(rateLimitHeader)) {
+                    data.requestsRemaining = parseInt(rateLimitHeader);
+                }
             }
         } else {
             data = {
-                requestsLimit: headers[map.requestsLimit] ? parseInt(headers[map.requestsLimit]) : null,
-                requestsRemaining: headers[map.requestsRemaining] ? parseInt(headers[map.requestsRemaining]) : null,
-                requestsReset: headers[map.requestsReset] ? this.parseResetTime(headers[map.requestsReset]) : null,
-                tokensLimit: headers[map.tokensLimit] ? parseInt(headers[map.tokensLimit]) : null,
-                tokensRemaining: headers[map.tokensRemaining] ? parseInt(headers[map.tokensRemaining]) : null,
-                tokensReset: headers[map.tokensReset] ? this.parseResetTime(headers[map.tokensReset]) : null
+                requestsLimit: parseHeader(map.requestsLimit),
+                requestsRemaining: parseHeader(map.requestsRemaining),
+                requestsReset: map.requestsReset && headers[map.requestsReset] ? this.parseResetTime(headers[map.requestsReset]) : null,
+                tokensLimit: parseHeader(map.tokensLimit),
+                tokensRemaining: parseHeader(map.tokensRemaining),
+                tokensReset: map.tokensReset && headers[map.tokensReset] ? this.parseResetTime(headers[map.tokensReset]) : null
             };
         }
 
-        if (data.requestsRemaining !== null || data.tokensRemaining !== null || (providerId === 'huggingface' && data.requestsLimit !== null)) {
+        // Save if we got ANY meaningful data (limit OR remaining, including 0 remaining)
+        const hasData = data.requestsLimit !== null || data.requestsRemaining !== null || 
+                        data.tokensLimit !== null || data.tokensRemaining !== null;
+        if (hasData) {
             if (!this.liveRateLimits[providerId]) this.liveRateLimits[providerId] = {};
             this.liveRateLimits[providerId][modelName] = { ...data, lastUpdated: Date.now() };
             statusPersistence.upsertLiveRateLimit({ ...data, providerId, modelName });
