@@ -15,6 +15,28 @@
           <span v-if="stat.suffix" class="text-xs font-bold text-[var(--text-color)] opacity-60">{{ stat.suffix }}</span>
         </div>
       </div>
+      <!-- Token Stats Row -->
+      <div v-for="stat in tokenStats" :key="stat.label" class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-[var(--accent-bg)]">
+        <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">{{ stat.label }}</span>
+        <!-- Dual layout for TPS card -->
+        <div v-if="stat.dual" class="flex items-end gap-4">
+          <div class="flex flex-col">
+            <span class="text-[9px] font-bold text-[var(--text-color)] opacity-40 uppercase tracking-wider">Input</span>
+            <span class="text-2xl font-black text-[var(--text-color)] leading-tight">{{ stat.dual.input }}</span>
+          </div>
+          <span class="text-sm font-black text-[var(--text-color)] opacity-30 pb-0.5">/</span>
+          <div class="flex flex-col">
+            <span class="text-[9px] font-bold text-[var(--text-color)] opacity-40 uppercase tracking-wider">Output</span>
+            <span class="text-2xl font-black text-[var(--text-color)] leading-tight">{{ stat.dual.output }}</span>
+          </div>
+          <span class="text-xs font-bold text-[var(--text-color)] opacity-60 pb-0.5">tok/s</span>
+        </div>
+        <!-- Standard layout -->
+        <div v-else class="flex items-baseline gap-2">
+          <span class="text-3xl font-black text-[var(--text-color)]">{{ stat.value }}</span>
+          <span v-if="stat.suffix" class="text-xs font-bold text-[var(--text-color)] opacity-60">{{ stat.suffix }}</span>
+        </div>
+      </div>
       <!-- Cost Savings Widget -->
       <div class="bg-[var(--accent-bg)] border border-[var(--accent-bg)] p-6 rounded-2xl shadow-xl flex flex-col gap-4 col-span-1 lg:col-span-5 min-w-0">
         <div class="flex justify-between items-center gap-4">
@@ -346,6 +368,24 @@ const summaryStats = computed(() => {
     { label: 'Failures', value: ((s.totalRequests || 0) - (s.successRequests || 0)).toLocaleString() },
     { label: 'Success Rate', value: rate, suffix: '%' },
     { label: 'Avg Latency', value: s.avgLatency || 0, suffix: 'ms' },
+  ]
+})
+
+const tokenStats = computed(() => {
+  if (!stats.value || !stats.value.summary) return []
+  const s = stats.value.summary
+  const avgInput = s.totalRequests > 0 ? Math.round((s.totalInputTokens || 0) / s.totalRequests) : 0
+  const avgOutput = s.totalRequests > 0 ? Math.round((s.totalOutputTokens || 0) / s.totalRequests) : 0
+  const latencySec = (s.avgLatency || 0) / 1000
+  const inputTps = latencySec > 0 && s.totalRequests > 0 ? (avgInput / latencySec).toFixed(1) : '0'
+  const outputTps = latencySec > 0 && s.totalRequests > 0 ? (avgOutput / latencySec).toFixed(1) : '0'
+
+  return [
+    { label: 'Total Input Tokens', value: (s.totalInputTokens || 0).toLocaleString() },
+    { label: 'Total Output Tokens', value: (s.totalOutputTokens || 0).toLocaleString() },
+    { label: 'Avg Input Tokens', value: avgInput.toLocaleString() },
+    { label: 'Avg Output Tokens', value: avgOutput.toLocaleString() },
+    { label: 'Avg TPS', dual: { input: inputTps, output: outputTps } },
   ]
 })
 
