@@ -20,9 +20,9 @@
         </div>
         
         <!-- Success Rate -->
-        <div class="bg-[var(--border-color)]/10 p-4 rounded-xl h-56 flex flex-col items-center justify-center">
-          <h3 class="text-[10px] font-black opacity-50 uppercase tracking-widest mb-2 w-full">Success Rate</h3>
-          <div class="flex-1 w-full max-w-[150px] flex items-center justify-center">
+        <div class="bg-[var(--border-color)]/10 p-4 rounded-xl h-56 flex flex-col items-center">
+          <h3 class="text-[10px] font-black opacity-50 uppercase tracking-widest mb-2 w-full text-center">Success Rate</h3>
+          <div class="w-full h-32 max-w-[120px] flex items-start justify-center pt-2">
             <Doughnut :data="successRateData" :options="{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }" />
           </div>
         </div>
@@ -57,7 +57,7 @@
           <div class="flex-1 overflow-y-auto custom-scrollbar">
               <table class="w-full text-xs text-[var(--text-color)]">
                   <tr v-for="model in topModels" :key="model.name" class="border-b border-[var(--border-color)]/20">
-                      <td class="py-1 font-mono truncate max-w-[100px]">{{ model.name }}</td>
+                      <td class="py-1 font-mono truncate max-w-[180px]">{{ model.name }}</td>
                       <td class="py-1 text-right font-black">{{ model.latency }}ms</td>
                   </tr>
               </table>
