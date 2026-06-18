@@ -6,8 +6,10 @@
         <h1 class="text-3xl font-black text-[var(--text-color)] mb-2 tracking-tighter">ANALYTICS & USAGE</h1>
         <p class="text-[var(--text-color)] opacity-70">Comprehensive overview of system performance, quotas, and historical requests.</p>
       </div>
-      <button @click="isModalOpen = true" class="p-4 bg-[var(--border-color)]/20 rounded-2xl hover:bg-[var(--accent-bg)]/20 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[var(--text-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <button @click="isModalOpen = true" 
+              class="group flex items-center gap-3 px-6 py-3 bg-[var(--border-color)]/20 hover:bg-[var(--accent-bg)] hover:text-[var(--accent-text)] rounded-2xl transition-all cursor-pointer border border-[var(--border-color)] hover:border-[var(--accent-bg)]">
+        <span class="text-xs font-black uppercase tracking-widest">Charts</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       </button>
