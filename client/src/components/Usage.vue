@@ -1,9 +1,16 @@
 <template>
   <div class="h-full flex flex-col gap-8 pb-12">
     <!-- Header -->
-    <div class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-3xl p-8 backdrop-blur-xl">
-      <h1 class="text-3xl font-black text-[var(--text-color)] mb-2 tracking-tighter">ANALYTICS & USAGE</h1>
-      <p class="text-[var(--text-color)] opacity-70">Comprehensive overview of system performance, quotas, and historical requests.</p>
+    <div class="bg-[var(--bg-color)] border border-[var(--border-color)] rounded-3xl p-8 backdrop-blur-xl flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-black text-[var(--text-color)] mb-2 tracking-tighter">ANALYTICS & USAGE</h1>
+        <p class="text-[var(--text-color)] opacity-70">Comprehensive overview of system performance, quotas, and historical requests.</p>
+      </div>
+      <button @click="isModalOpen = true" class="p-4 bg-[var(--border-color)]/20 rounded-2xl hover:bg-[var(--accent-bg)]/20 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[var(--text-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      </button>
     </div>
 
     <!-- Stats Grid -->
@@ -284,6 +291,15 @@
             </div>
         </div>
     </div>
+    <GraphsModal 
+        v-if="stats"
+        v-model:isOpen="isModalOpen" 
+        :stats="stats" 
+        :chartData="chartData" 
+        :chartOptions="chartOptions" 
+        :chartKey="chartKey" 
+        :providers="providers"
+    />
   </div>
 </template>
 
@@ -293,10 +309,13 @@ import { useThemeStore } from '../store'
 import axios from 'axios'
 import { io } from 'socket.io-client'
 import { Line } from 'vue-chartjs'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+import GraphsModal from './GraphsModal.vue'
 
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler)
+
+const isModalOpen = ref(false)
 const stats = ref(null)
 const pricingData = ref([])
 const history = ref([])
@@ -589,6 +608,7 @@ const fetchData = async () => {
     ])
     stats.value = statsRes.data
     pricingData.value = pricingRes.data
+    console.log("DEBUG: API Stats Data:", statsRes.data);
     await Promise.all([
         fetchHistory(),
         fetchTimeSeries()
