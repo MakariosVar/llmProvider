@@ -232,10 +232,6 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-app.get('/llms', (req, res) => {
-    res.sendFile('src/statusPage.html', { root: '.' });
-});
-
 app.post('/api/status/check', async (req, res) => {
     log('Manual status check triggered via API');
     try {

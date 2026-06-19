@@ -72,6 +72,10 @@ body {
   min-width: 120px;
 }
 
+button {
+  cursor: pointer;
+}
+
 .v-select .vs__dropdown-toggle {
   border: 2px solid var(--border-color) !important;
   border-radius: 1rem !important;

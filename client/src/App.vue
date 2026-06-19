@@ -47,7 +47,8 @@ const navItems = [
   { name: 'Images', path: '/images' },
   { name: 'Usage', path: '/usage' },
   { name: 'Quota', path: '/quota' },
-  { name: 'Test API', path: '/test-api' }
+  { name: 'API', path: '/test-api' },
+  { name: 'Docs', path: '/docs' }
 ]
 
 const logout = () => {

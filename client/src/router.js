@@ -5,6 +5,7 @@ import Chat from './components/Chat.vue'
 import Compare from './components/Compare.vue'
 import Images from './components/Images.vue'
 import TestAPI from './components/TestAPI.vue'
+import DocsPage from './components/DocsPage.vue'
 import Usage from './components/Usage.vue'
 import Quota from './components/Quota.vue'
 import NotFound from './components/NotFound.vue'
@@ -18,6 +19,7 @@ const routes = [
   { path: '/compare', component: Compare, meta: { requiresAuth: true } },
   { path: '/images', component: Images, meta: { requiresAuth: true } },
   { path: '/test-api', component: TestAPI, meta: { requiresAuth: true } },
+  { path: '/docs', component: DocsPage, meta: { requiresAuth: true } },
   { path: '/usage', component: Usage, meta: { requiresAuth: true } },
   { path: '/quota', component: Quota, meta: { requiresAuth: true } },
   { path: '/:pathMatch(.*)*', component: NotFound }
