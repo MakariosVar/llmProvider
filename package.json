@@ -6,11 +6,21 @@
   "type": "module",
   "scripts": {
     "start": "cd client && npm run build && cd .. && node server.js",
+    "build": "node scripts/build.js",
     "test": "node src/testResultsCli.js",
     "chat": "node src/chatTui.js",
     "fresh-db": "rm -rf status.db",
     "test:view": "node src/testResultsServer.js",
     "test:raw": "node src/testRunner.js"
+  },
+  "pkg": {
+    "assets": [
+      "client/dist/**/*",
+      "node_modules/better-sqlite3/build/**/*"
+    ],
+    "targets": [
+      "node22-linux-x64"
+    ]
   },
   "keywords": [
     "llm",
@@ -37,5 +47,9 @@
   "overrides": {
     "lodash": "^4.17.21",
     "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.20.0",
+    "esbuild": "^0.28.1"
   }
 }
