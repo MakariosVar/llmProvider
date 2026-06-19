@@ -309,16 +309,9 @@ class ProviderManager {
 
     canUseProvider(id) {
         const provider = this.providers[id];
-        const usage = this.usage[id];
 
         if (!provider) return false;
         if (provider.status === 'offline' || provider.status === 'rate_limited') return false;
-
-        // Check limits
-        this.checkResetLimits(id);
-
-        if (usage.requestsThisMinute >= provider.rpm) return false;
-        if (usage.requestsToday >= provider.daily_limit) return false;
 
         return true;
     }
