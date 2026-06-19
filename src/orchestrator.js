@@ -585,6 +585,13 @@ class Orchestrator {
         const allErrors = [];
 
         for (const provider of candidates) {
+            // Check circuit breaker
+            if (!circuitBreaker.canAttempt(provider.id)) {
+                logger.warn(`Circuit breaker OPEN for ${provider.name} (stream) - skipping`);
+                allErrors.push(new Error(`Circuit breaker OPEN for ${provider.name}`));
+                continue;
+            }
+
             let models = providerManager.getAllModels(provider.id);
             if (requestedModel) models = models.filter(m => m === requestedModel);
 
@@ -639,6 +646,7 @@ class Orchestrator {
                     providerManager.updateStatus(provider.id, 'online');
                     providerManager.updateModelStatus(provider.id, model, 'online');
                     providerManager.clearRateLimit(provider.id, model);
+                    circuitBreaker.recordSuccess(provider.id);
 
                     statusPersistence.logRequest({
                         providerId: provider.id,
@@ -690,14 +698,27 @@ class Orchestrator {
                         error.message?.toLowerCase().includes('rate limit') ||
                         error.response?.data?.toString().toLowerCase().includes('rate limit');
 
+                    // Check for transient errors (network issues, timeouts, 5xx errors)
+                    const isTransientError = error.code === 'ECONNREFUSED' ||
+                        error.code === 'ETIMEDOUT' ||
+                        error.code === 'ENOTFOUND' ||
+                        (error.response?.status >= 500 && error.response?.status < 600) ||
+                        error.message?.toLowerCase().includes('timeout') ||
+                        error.message?.toLowerCase().includes('network');
+
                     if (isRateLimit) {
                         console.log(`Marking ${provider.name} / ${model} as rate limited for 5 mins.`);
                         if (error.response?.headers) {
                             providerManager.updateLiveRateLimits(provider.id, model, error.response.headers);
                         }
                         providerManager.markRateLimited(provider.id, model);
+                    } else if (isTransientError) {
+                        logger.warn(`Transient error for ${provider.name} / ${model}: ${error.message}. Will retry.`);
+                        circuitBreaker.recordFailure(provider.id);
                     } else {
+                        logger.error(`Marking ${provider.name} / ${model} as error: ${error.message}`);
                         providerManager.updateModelStatus(provider.id, model, 'error', error.message || String(error));
+                        circuitBreaker.recordFailure(provider.id);
                     }
                     // Continue to next model in this provider
                 }
@@ -933,7 +954,7 @@ class Orchestrator {
         }
 
         for (const provider of candidates) {
-            if (!circuitBreaker.canAttempt(provider.id)) continue;
+            if (!circuitBreaker.isAvailable(provider.id)) continue;
 
             let models = providerManager.getAllModels(provider.id);
             if (requestedModel) models = models.filter(m => m === requestedModel);

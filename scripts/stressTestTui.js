@@ -103,8 +103,14 @@ screen.key(['q', 'C-c'], () => process.exit(0));
 screen.key(['s'], async () => { 
     if (!isRunning) { 
         isRunning = true; 
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
         const validModels = await getValidModels();
-        validModels.forEach(item => runWorker(item.providerId, item.model)); 
+
+        for (const item of validModels) {
+            await runWorker(item.providerId, item.model);
+            await sleep(500);
+        }
     }
 });
 screen.key(['p'], () => { isRunning = false; });

@@ -28,7 +28,8 @@ export class CircuitBreaker {
                 state: 'closed',
                 failures: 0,
                 nextAttempt: null,
-                halfOpenAttempts: 0
+                halfOpenAttempts: 0,
+                halfOpenPermits: 0
             });
         }
         return this.circuits.get(providerId);
@@ -48,9 +49,11 @@ export class CircuitBreaker {
 
         if (circuit.state === 'open') {
             // Check if it's time to try half-open
-            if (Date.now() >= circuit.nextAttempt) {
+            if (circuit.nextAttempt && Date.now() >= circuit.nextAttempt) {
                 circuit.state = 'half-open';
                 circuit.halfOpenAttempts = 0;
+                circuit.halfOpenPermits = this.halfOpenAttempts;
+                circuit.halfOpenPermits--;
                 return true;
             }
             return false; // Circuit still open
@@ -58,7 +61,11 @@ export class CircuitBreaker {
 
         if (circuit.state === 'half-open') {
             // Allow limited attempts in half-open state
-            return circuit.halfOpenAttempts < this.halfOpenAttempts;
+            if (circuit.halfOpenPermits > 0) {
+                circuit.halfOpenPermits--;
+                return true;
+            }
+            return false;
         }
 
         return false;
@@ -71,7 +78,11 @@ export class CircuitBreaker {
     recordSuccess(providerId) {
         const circuit = this.getCircuit(providerId);
 
-        if (circuit.state === 'half-open') {
+        if (circuit.state === 'open') {
+            circuit.state = 'half-open';
+            circuit.halfOpenAttempts = 1;
+            circuit.halfOpenPermits = this.halfOpenAttempts;
+        } else if (circuit.state === 'half-open') {
             circuit.halfOpenAttempts++;
 
             // If enough successful attempts, close the circuit
@@ -80,9 +91,9 @@ export class CircuitBreaker {
                 circuit.failures = 0;
                 circuit.nextAttempt = null;
                 circuit.halfOpenAttempts = 0;
+                circuit.halfOpenPermits = 0;
             }
         } else if (circuit.state === 'closed') {
-            // Reset failure count on success
             circuit.failures = Math.max(0, circuit.failures - 1);
         }
     }
@@ -101,13 +112,39 @@ export class CircuitBreaker {
             circuit.state = 'open';
             circuit.nextAttempt = Date.now() + this.resetTimeout;
             circuit.halfOpenAttempts = 0;
+            circuit.halfOpenPermits = 0;
         } else if (circuit.state === 'closed') {
             // Check if threshold exceeded
             if (circuit.failures >= this.failureThreshold) {
                 circuit.state = 'open';
                 circuit.nextAttempt = Date.now() + this.resetTimeout;
+                circuit.halfOpenAttempts = 0;
+                circuit.halfOpenPermits = 0;
             }
         }
+    }
+
+    /**
+     * Read-only check if a circuit allows requests (no side effects)
+     * @param {string} providerId
+     * @returns {boolean} True if request could potentially proceed
+     */
+    isAvailable(providerId) {
+        const circuit = this.getCircuit(providerId);
+
+        if (circuit.state === 'closed') {
+            return true;
+        }
+
+        if (circuit.state === 'open') {
+            return circuit.nextAttempt && Date.now() >= circuit.nextAttempt;
+        }
+
+        if (circuit.state === 'half-open') {
+            return circuit.halfOpenPermits > 0;
+        }
+
+        return false;
     }
 
     /**
@@ -121,7 +158,7 @@ export class CircuitBreaker {
             state: circuit.state,
             failures: circuit.failures,
             nextAttempt: circuit.nextAttempt,
-            canAttempt: this.canAttempt(providerId)
+            canAttempt: this.isAvailable(providerId)
         };
     }
 
@@ -136,6 +173,7 @@ export class CircuitBreaker {
             circuit.failures = 0;
             circuit.nextAttempt = null;
             circuit.halfOpenAttempts = 0;
+            circuit.halfOpenPermits = 0;
         }
     }
 
@@ -150,7 +188,7 @@ export class CircuitBreaker {
                 state: circuit.state,
                 failures: circuit.failures,
                 nextAttempt: circuit.nextAttempt,
-                canAttempt: this.canAttempt(providerId)
+                canAttempt: this.isAvailable(providerId)
             };
         }
         return states;

@@ -298,12 +298,14 @@ io.on('connection', (socket) => {
     });
 });
 
-// Start Server
-const PORT = config.port;
-httpServer.listen(PORT, async () => {
+// Serve SPA - catch-all route (must be after all API routes)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
 });
+
+// Start Server
+const PORT = config.port;
+httpServer.listen(PORT, async () => {
     log(`Server started on port ${PORT}`);
 
     // Start Health Checker

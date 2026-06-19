@@ -10,6 +10,8 @@ class StatusPersistence {
         this.db = new Database(path.resolve(DB_FILE));
         this.init();
         this.migrateFromJson();
+        this.cleanupOldRecords(60);
+        setInterval(() => this.cleanupOldRecords(60), 24 * 60 * 60 * 1000);
     }
 
     init() {
@@ -241,6 +243,16 @@ class StatusPersistence {
             insert.run(providerId, modelName, status, latency, inputTokens, outputTokens, type, Date.now(), errorMessage);
         } catch (error) {
             console.error('Failed to log request in SQLite:', error.message);
+        }
+    }
+
+    cleanupOldRecords(retentionDays = 60) {
+        try {
+            const cutoff = Date.now() - (retentionDays * 24 * 60 * 60 * 1000);
+            const result = this.db.prepare('DELETE FROM request_history WHERE timestamp < ?').run(cutoff);
+            console.log(`Cleaned up ${result.changes} request history records older than ${retentionDays} days`);
+        } catch (error) {
+            console.error('Failed to cleanup old records:', error.message);
         }
     }
 
