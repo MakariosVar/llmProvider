@@ -9,6 +9,18 @@ import CircuitBreaker from './circuitBreaker.js';
 import { AllProvidersFailedError } from './errors.js';
 import chalk from 'chalk';
 
+// Custom winston transport that routes through console.log
+// This lets the TUI dashboard's console interception capture log messages
+// instead of writing directly to stdout/stderr where they'd overlap blessed rendering
+class ConsoleLogTransport extends winston.Transport {
+    log(info, callback) {
+        setImmediate(() => this.emit('logged', info));
+        if (info && info.message) {
+            console.log(info.message);
+        }
+        callback();
+    }
+}
 
 // Create logger instance for orchestrator
 const logger = winston.createLogger({
@@ -34,7 +46,7 @@ const logger = winston.createLogger({
         })
     ),
     transports: [
-        new winston.transports.Console()
+        new ConsoleLogTransport()
     ]
 });
 
@@ -904,10 +916,44 @@ class Orchestrator {
             }
         });
 
-        return new Promise((resolve, reject) => {
+                return new Promise((resolve, reject) => {
             stream.on('end', resolve);
             stream.on('error', reject);
         });
+    }
+
+    async findNextCandidate(requestedModel = null) {
+        let candidates = providerManager.getAllProviders()
+            .filter(p => p.type !== 'image')
+            .filter(p => providerManager.canUseProvider(p.id))
+            .sort((a, b) => a.priority - b.priority);
+
+        if (requestedModel) {
+            candidates = candidates.filter(p => p.models && p.models.includes(requestedModel));
+        }
+
+        for (const provider of candidates) {
+            if (!circuitBreaker.canAttempt(provider.id)) continue;
+
+            let models = providerManager.getAllModels(provider.id);
+            if (requestedModel) models = models.filter(m => m === requestedModel);
+
+            for (const model of models) {
+                if (providerManager.isRateLimited(provider.id, model)) continue;
+
+                const modelStatus = providerManager.getModelStatus(provider.id, model);
+                if (modelStatus.status === 'error') {
+                    const ERROR_RETRY_MS = 5 * 60 * 1000;
+                    const timeSinceError = modelStatus.lastError
+                        ? (Date.now() - (typeof modelStatus.lastError === 'number' ? modelStatus.lastError : Date.now()))
+                        : Infinity;
+                    if (timeSinceError < ERROR_RETRY_MS) continue;
+                }
+
+                return { provider: provider.name, model };
+            }
+        }
+        return null;
     }
 }
 

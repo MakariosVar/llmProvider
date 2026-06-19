@@ -32,9 +32,9 @@
       </div>
       <div class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-emerald-500/50">
         <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">Available Model</span>
-        <div class="flex flex-col" v-if="preferredModel">
-          <span class="text-xs font-black text-[var(--text-color)] truncate">{{ preferredModel.split(' / ')[0] }}</span>
-          <span class="text-[10px] font-mono font-bold text-[var(--text-color)] opacity-60 truncate">{{ preferredModel.split(' / ')[1] }}</span>
+        <div class="flex flex-col" v-if="nextModel && nextModel.provider">
+          <span class="text-xs font-black text-[var(--text-color)] truncate">{{ nextModel.provider }}</span>
+          <span class="text-[10px] font-mono font-bold text-[var(--text-color)] opacity-60 truncate">{{ nextModel.model }}</span>
         </div>
         <div v-else class="text-xs font-black text-[var(--text-color)] opacity-30">—</div>
       </div>
@@ -206,6 +206,7 @@ import { io } from 'socket.io-client'
 import axios from 'axios'
 
 const providers = ref([])
+const nextModel = ref(null)
 const socket = ref(null)
 const now = ref(Date.now())
 
@@ -245,19 +246,6 @@ const liveModelCount = computed(() => {
         if (p.liveRateLimits) count += Object.keys(p.liveRateLimits).length
     })
     return count
-})
-
-const preferredModel = computed(() => {
-    for (const p of allProviders.value) {
-        if (p.modelStatuses) {
-            for (const [model, status] of Object.entries(p.modelStatuses)) {
-                if (status.status === 'online') {
-                    return `${p.name} / ${model}`
-                }
-            }
-        }
-    }
-    return null
 })
 
 const rateLimitedCount = computed(() => {
@@ -402,6 +390,7 @@ const fetchData = async () => {
     try {
         const res = await axios.get('/api/status')
         providers.value = res.data.providers
+        nextModel.value = res.data.nextModel || null
     } catch (e) {
         console.error('Failed to fetch quota data:', e)
     }
@@ -411,8 +400,8 @@ let timer
 onMounted(() => {
     fetchData()
     socket.value = io()
-    socket.value.on('status_update', (data) => {
-        providers.value = data
+    socket.value.on('status_update', () => {
+        fetchData()
     })
     
     timer = setInterval(() => {

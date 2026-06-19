@@ -177,10 +177,12 @@ app.post('/api/ai/stream', validateGenerateParams, async (req, res) => {
     }
 });
 
-app.get('/api/status', (req, res) => {
+app.get('/api/status', async (req, res) => {
+    const nextModel = await orchestrator.findNextCandidate();
     res.json({
         providers: providerManager.getAllProviders(),
-        usage: providerManager.usage
+        usage: providerManager.usage,
+        nextModel: nextModel || null
     });
 });
 
