@@ -126,17 +126,23 @@ export function startDashboard() {
     mouse: true,
   });
 
+  const BASE_STATUS = ' {magenta-fg}[q]{/magenta-fg}uit  {magenta-fg}[r]{/magenta-fg}escan  {magenta-fg}[t]{/magenta-fg}unnel  {magenta-fg}[c]{/magenta-fg}lear log  {magenta-fg}[d]{/magenta-fg}ebug';
+
   // ─── Status Bar (row 11, cols 0-12) ───
   const statusBar = grid.set(11, 0, 1, 12, blessed.box, {
     tags: true,
     style: { fg: 'white', bg: 'black' },
     padding: { left: 1, right: 1 },
-    content: ' {magenta-fg}[q]{/magenta-fg}uit  {magenta-fg}[r]{/magenta-fg}escan health  {magenta-fg}[c]{/magenta-fg}lear log  {magenta-fg}[d]{/magenta-fg}ebug',
+    content: BASE_STATUS,
   });
 
   // ─── Data refresh ───
   let refreshTimer = null;
   let serverStart = Date.now();
+
+  // ─── Tunnel state ───
+  let tunnelInstance = null;
+  let tunnelUrl = null;
 
   function makeProviderContent(providers) {
     const lines = [];
@@ -212,6 +218,45 @@ export function startDashboard() {
     ].join('\n');
   }
 
+  function restoreStatusBar() {
+    const suffix = tunnelUrl ? `  {green-fg}● Tunnel: ${tunnelUrl}{/green-fg}` : '';
+    statusBar.setContent(BASE_STATUS + suffix);
+    screen.render();
+  }
+
+  async function startTunnel() {
+    try {
+      const localtunnel = (await import('localtunnel')).default;
+      const port = config.port || 3000;
+      tunnelInstance = await localtunnel({ port });
+      tunnelUrl = tunnelInstance.url;
+      pushLog(`Tunnel opened: ${tunnelUrl}`, 'info');
+      tunnelInstance.on('close', () => {
+        pushLog('Tunnel closed', 'info');
+        tunnelUrl = null;
+        tunnelInstance = null;
+        restoreStatusBar();
+      });
+      statusBar.setContent(` {green-fg}● Tunnel: ${tunnelUrl}{/green-fg}  {magenta-fg}[t]{/magenta-fg} close`);
+      screen.render();
+    } catch (e) {
+      pushLog(`Tunnel failed: ${e.message}`, 'error');
+      tunnelUrl = null;
+      tunnelInstance = null;
+      restoreStatusBar();
+    }
+  }
+
+  async function stopTunnel() {
+    if (tunnelInstance) {
+      tunnelInstance.close();
+      tunnelInstance = null;
+      tunnelUrl = null;
+      pushLog('Tunnel closed', 'info');
+      restoreStatusBar();
+    }
+  }
+
   async function refresh() {
     try {
       const providers = providerManager.getAllProviders();
@@ -258,6 +303,7 @@ export function startDashboard() {
   screen.key(['q', 'Q'], () => {
     clearInterval(refreshTimer);
     unsubLog();
+    if (tunnelInstance) tunnelInstance.close();
     screen.destroy();
     process.exit(0);
   });
@@ -267,10 +313,7 @@ export function startDashboard() {
     screen.render();
     healthChecker.checkAll(true).catch(() => {}).finally(() => {
       setTimeout(refresh, 500);
-      statusBar.setContent(
-        ' {magenta-fg}[q]{/magenta-fg}uit  {magenta-fg}[r]{/magenta-fg}escan health  {magenta-fg}[c]{/magenta-fg}lear log  {magenta-fg}[d]{/magenta-fg}ebug'
-      );
-      screen.render();
+      restoreStatusBar();
     });
   });
 
@@ -290,19 +333,15 @@ export function startDashboard() {
       ` Heap: ${heap}MB  RSS: ${rss}MB  DB providers: ${dbProviders}  DB models: ${dbModels} `
     );
     screen.render();
-    setTimeout(() => {
-      statusBar.setContent(
-        ' {magenta-fg}[q]{/magenta-fg}uit  {magenta-fg}[r]{/magenta-fg}escan health  {magenta-fg}[c]{/magenta-fg}lear log  {magenta-fg}[d]{/magenta-fg}ebug'
-      );
-      screen.render();
-    }, 5000);
+    setTimeout(restoreStatusBar, 5000);
   });
 
-  screen.key(['escape', 'C-c'], () => {
-    clearInterval(refreshTimer);
-    unsubLog();
-    screen.destroy();
-    process.exit(0);
+  screen.key(['t', 'T'], () => {
+    if (tunnelInstance) {
+      stopTunnel();
+    } else {
+      startTunnel();
+    }
   });
 
   // ─── Start refresh loop ───
