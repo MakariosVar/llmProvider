@@ -113,13 +113,6 @@ app.post('/api/ai', validateGenerateParams, async (req, res) => {
     }
 });
 
-// Config endpoint for frontend
-app.get('/api/config', (req, res) => {
-    res.json({
-        agentUrl: config.agentUrl
-    });
-});
-
 // Streaming endpoint (SSE-like over POST chunked response)
 app.post('/api/ai/stream', validateGenerateParams, async (req, res) => {
     try {
