@@ -10,6 +10,7 @@ import healthChecker from './src/healthChecker.js';
 import providerManager from './src/providerManager.js';
 import statusPersistence from './src/statusPersistence.js';
 import pricingManager from './src/pricingManager.js';
+import { countTokens } from './src/utils/tokenCounter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,10 +44,28 @@ const log = (msg) => {
 
 // Middleware for parameter validation
 const validateGenerateParams = (req, res, next) => {
-    const { prompt } = req.body;
+    const { prompt, systemPrompt } = req.body;
+
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
         return res.status(400).json({ error: 'Missing or invalid "prompt" parameter' });
     }
+
+    const promptTokens = countTokens(prompt);
+    if (promptTokens > config.maxPromptTokens) {
+        return res.status(400).json({
+            error: `Prompt too long (${promptTokens} tokens, max ${config.maxPromptTokens})`
+        });
+    }
+
+    if (systemPrompt && typeof systemPrompt === 'string') {
+        const systemTokens = countTokens(systemPrompt);
+        if (systemTokens > config.maxSystemTokens) {
+            return res.status(400).json({
+                error: `System prompt too long (${systemTokens} tokens, max ${config.maxSystemTokens})`
+            });
+        }
+    }
+
     next();
 };
 

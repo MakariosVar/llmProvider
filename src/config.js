@@ -3,6 +3,8 @@ dotenv.config();
 
 export default {
     port: process.env.PORT || 3000,
+    maxPromptTokens: parseInt(process.env.MAX_PROMPT_TOKENS) || 30000,
+    maxSystemTokens: parseInt(process.env.MAX_SYSTEM_TOKENS) || 5000,
     admin: {
         username: process.env.ADMIN_USERNAME || 'admin',
         password: process.env.ADMIN_PASSWORD || 'admin'
