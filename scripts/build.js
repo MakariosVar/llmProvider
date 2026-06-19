@@ -11,13 +11,14 @@ mkdirSync(DIST, { recursive: true });
 console.log('Building client...');
 execSync('npm run build', { cwd: 'client', stdio: 'inherit' });
 
-// 2. Bundle server with esbuild into ESM at project root
+// 2. Bundle server + dashboard with esbuild into ESM at project root
 //    (so __dirname inside pkg snapshot points to project root, not dist/)
 console.log('Bundling server...');
 execSync(
-  `npx esbuild server.js --bundle --platform=node --target=node22 ` +
+  `npx esbuild src/cli.js --bundle --platform=node --target=node22 ` +
   `--outfile=${ROOT}/bundle.mjs --format=esm ` +
-  `--external:better-sqlite3`,
+  `--external:better-sqlite3 --external:term.js --external:pty.js ` +
+  `--external:blessed --external:blessed-contrib`,
   { stdio: 'inherit' }
 );
 

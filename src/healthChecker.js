@@ -44,17 +44,33 @@ class HealthChecker {
                 // Get models
                 const response = await axios.get(`${provider.host}/api/tags`);
                 if (response.data && response.data.models && response.data.models.length > 0) {
-                    // Update models list
                     provider.models = response.data.models.map(m => m.name);
-                    providerManager.updateStatus(provider.id, 'online');
+                    // Verify actual model inference, not just HTTP connectivity
+                    try {
+                        const orchestrator = (await import('./orchestrator.js')).default;
+                        await orchestrator.callProvider(
+                            provider, 'Respond with a brief confirmation.',
+                            'You are a helpful assistant.', 0.7, provider.models[0], 'text'
+                        );
+                        providerManager.updateStatus(provider.id, 'online');
+                    } catch (inferError) {
+                        const isConnError = inferError.code === 'ECONNREFUSED' ||
+                            inferError.code === 'ETIMEDOUT' ||
+                            inferError.code === 'ENOTFOUND';
+                        if (isConnError) {
+                            providerManager.updateStatus(provider.id, 'offline');
+                        } else {
+                            // Non-connection error means Ollama is running but model has issues
+                            providerManager.updateStatus(provider.id, 'online');
+                        }
+                    }
                 } else {
                     providerManager.updateStatus(provider.id, 'error');
-                    return;
                 }
             } catch (error) {
                 providerManager.updateStatus(provider.id, 'offline');
-                return;
             }
+            return;
         }
 
         if (force) {

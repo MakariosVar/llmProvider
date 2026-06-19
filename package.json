@@ -16,10 +16,15 @@
   "pkg": {
     "assets": [
       "client/dist/**/*",
-      "node_modules/better-sqlite3/build/**/*"
+      "node_modules/better-sqlite3/build/**/*",
+      "node_modules/blessed/usr/**/*"
     ],
     "targets": [
       "node22-linux-x64"
+    ],
+    "publicPackages": [
+      "blessed",
+      "blessed-contrib"
     ]
   },
   "keywords": [
