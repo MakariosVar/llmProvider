@@ -155,8 +155,9 @@ class Orchestrator {
             requestedModel = params.mode;
         }
 
-        // Get candidates
+        // Get candidates (exclude image-only providers)
         let candidates = providerManager.getAllProviders()
+            .filter(p => p.type !== 'image')
             .filter(p => providerManager.canUseProvider(p.id))
             .sort((a, b) => a.priority - b.priority);
 
@@ -166,9 +167,6 @@ class Orchestrator {
         }
 
         if (candidates.length === 0) {
-            // Fallback: If no provider has the exact model, maybe check if we should throw or just try all?
-            // For now, if model is specific, we assume the user wants THAT model.
-            // But if it's null, we use all.
             if (requestedModel) {
                 throw new Error(`No available provider supports model: ${requestedModel}`);
             } else {
@@ -177,7 +175,7 @@ class Orchestrator {
         }
 
         let lastError = null;
-        const allErrors = []; // Array to collect all errors
+        const allErrors = [];
 
         for (const provider of candidates) {
             // Check circuit breaker
@@ -561,6 +559,7 @@ class Orchestrator {
         }
 
         let candidates = providerManager.getAllProviders()
+            .filter(p => p.type !== 'image')
             .filter(p => providerManager.canUseProvider(p.id))
             .sort((a, b) => a.priority - b.priority);
 
@@ -571,7 +570,7 @@ class Orchestrator {
         if (candidates.length === 0) throw new AllProvidersFailedError([new Error('No available providers')]);
 
         let lastError = null;
-        const allErrors = []; // Array to collect all errors
+        const allErrors = [];
 
         for (const provider of candidates) {
             let models = providerManager.getAllModels(provider.id);
