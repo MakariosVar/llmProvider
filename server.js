@@ -279,7 +279,7 @@ function openaiMessagesToInternal(messages) {
 }
 
 app.post('/v1/chat/completions', async (req, res) => {
-    const { model, messages, temperature, max_tokens, stream: doStream } = req.body;
+    const { messages, temperature, max_tokens, stream: doStream, response_format } = req.body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({
@@ -296,7 +296,10 @@ app.post('/v1/chat/completions', async (req, res) => {
     }
 
     const { systemPrompt, history, prompt } = openaiMessagesToInternal(messages);
-    const params = { prompt, messages: history, systemPrompt, temperature, model, max_tokens };
+    const params = { prompt, messages: history, systemPrompt, temperature, max_tokens };
+    if (response_format && response_format.type) {
+        params.response_format = response_format;
+    }
 
     if (doStream) {
         const id = 'chatcmpl-' + Date.now() + Math.random().toString(36).slice(2, 8);
@@ -307,7 +310,7 @@ app.post('/v1/chat/completions', async (req, res) => {
         });
         res.flushHeaders && res.flushHeaders();
 
-        let modelName = model || 'unknown';
+        let modelName = 'unknown';
 
         try {
             await orchestrator.stream(params, (payload) => {
