@@ -106,6 +106,71 @@ event: data
           </div>
         </section>
 
+        <!-- ═══ OPENAI-COMPATIBLE ═══ -->
+        <section id="openai" class="scroll-mt-24">
+          <div class="flex items-start gap-4">
+            <div class="w-1 h-10 shrink-0 mt-0.5 rounded-full bg-purple-500"></div>
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-1">
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-500/20 border border-purple-500/30">
+                  <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </span>
+                <h2 class="text-xl font-bold text-white">OpenAI-Compatible</h2>
+              </div>
+              <p class="text-slate-400 text-sm mt-0.5 ml-11">Drop-in replacement for OpenAI clients. Uses the same failover and provider selection.</p>
+            </div>
+          </div>
+          <div class="mt-5 space-y-4">
+            <div class="p-5 bg-slate-900/40 border border-slate-800 rounded-2xl hover:border-slate-700 transition-all">
+              <div class="flex items-center gap-2.5 mb-2">
+                <span class="px-2 py-0.5 rounded text-xs font-bold text-white bg-purple-500">POST</span>
+                <code class="text-indigo-300 font-mono font-bold text-sm">/v1/chat/completions</code>
+              </div>
+              <p class="text-slate-500 text-sm mb-3">OpenAI-compatible chat completions. Supports <code class="text-purple-300">stream: true</code> for SSE streaming.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <details class="group">
+                  <summary class="text-slate-400 font-bold cursor-pointer hover:text-slate-200 list-none flex items-center gap-1.5 text-xs">
+                    <span class="transition-transform group-open:rotate-90">&#9654;</span> Request Body
+                  </summary>
+                  <pre class="text-slate-500 font-mono mt-1.5 p-2.5 bg-slate-950 rounded-lg border border-slate-800/50 text-xs overflow-x-auto">{
+  "model": "gpt-4o-mini",
+  "messages": [
+    {"role": "system", "content": "You are helpful."},
+    {"role": "user", "content": "Hello!"}
+  ],
+  "temperature": 0.7,
+  "stream": false
+}</pre>
+                </details>
+                <details class="group">
+                  <summary class="text-slate-400 font-bold cursor-pointer hover:text-slate-200 list-none flex items-center gap-1.5 text-xs">
+                    <span class="transition-transform group-open:rotate-90">&#9654;</span> Response <span class="text-emerald-400">200</span>
+                  </summary>
+                  <pre class="text-emerald-500 font-mono mt-1.5 p-2.5 bg-slate-950 rounded-lg border border-slate-800/50 text-xs">{
+  "id": "chatcmpl-1719000000abc123",
+  "object": "chat.completion",
+  "created": 1719000000,
+  "model": "gpt-4o-mini",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "Hello! How can I help you today?"
+    },
+    "finish_reason": "stop"
+  }],
+  "usage": {
+    "prompt_tokens": 14,
+    "completion_tokens": 6,
+    "total_tokens": 20
+  }
+}</pre>
+                </details>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- ═══ IMAGE GENERATION ═══ -->
         <section id="image-gen" class="scroll-mt-24">
           <div class="flex items-start gap-4">
@@ -232,7 +297,7 @@ event: data
                 </span>
                 <h2 class="text-xl font-bold text-white">Request Parameters</h2>
               </div>
-              <p class="text-slate-400 text-sm mt-0.5 ml-11">Accepted by POST /api/ai and POST /api/ai/stream.</p>
+              <p class="text-slate-400 text-sm mt-0.5 ml-11">Accepted by <code class="text-indigo-300">POST /api/ai</code>, <code class="text-indigo-300">POST /api/ai/stream</code>, and <code class="text-purple-300">POST /v1/chat/completions</code>.</p>
             </div>
           </div>
           <div class="overflow-x-auto mt-5 rounded-2xl border border-slate-800">

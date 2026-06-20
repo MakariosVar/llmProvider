@@ -86,6 +86,49 @@ Streaming text generation with conversation memory.
 #### POST `/api/ai`
 Standard non-streaming text generation.
 
+### OpenAI-Compatibile API
+
+#### POST `/v1/chat/completions`
+OpenAI-compatible chat completions endpoint. Accepts standard OpenAI request format and returns OpenAI response format.
+
+**Body (non-streaming):**
+```json
+{
+  "model": "llama-3.3-70b-versatile",
+  "messages": [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "What is the capital of France?"}
+  ],
+  "temperature": 0.7,
+  "max_tokens": 100
+}
+```
+
+**Response:**
+```json
+{
+  "id": "chatcmpl-1234567890abcdef",
+  "object": "chat.completion",
+  "created": 1719000000,
+  "model": "llama-3.3-70b-versatile",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "The capital of France is Paris."
+    },
+    "finish_reason": "stop"
+  }],
+  "usage": {
+    "prompt_tokens": 14,
+    "completion_tokens": 6,
+    "total_tokens": 20
+  }
+}
+```
+
+Set `"stream": true` for SSE streaming with `data: [DONE]` termination, following the exact OpenAI streaming specification.
+
 #### POST `/api/ai/image`
 Image generation via Pollinations or Cloudflare.
 

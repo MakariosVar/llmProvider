@@ -18,7 +18,7 @@
           <div class="space-y-4">
             <div>
               <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Endpoint Type</label>
-              <v-select v-model="selectedType" :options="['text', 'stream', 'image']" placeholder="Select Type" class="bg-white rounded-lg" :append-to-body="true"></v-select>
+              <v-select v-model="selectedType" :options="['text', 'stream', 'openai', 'image']" placeholder="Select Type" class="bg-white rounded-lg" :append-to-body="true"></v-select>
             </div>
 
             <div>
@@ -294,6 +294,22 @@ const renderedResult = computed(() => {
 })
 
 const buildPayload = () => {
+  if (selectedType.value === 'openai') {
+    const messages = []
+    if (systemPrompt.value.trim()) messages.push({ role: 'system', content: systemPrompt.value.trim() })
+    if (messagesJson.value.trim()) {
+      try {
+        const parsed = JSON.parse(messagesJson.value.trim())
+        if (Array.isArray(parsed)) messages.push(...parsed)
+      } catch (e) {}
+    }
+    messages.push({ role: 'user', content: testPrompt.value })
+    const payload = { messages, stream: false }
+    if (selectedModel.value) payload.model = selectedModel.value
+    if (temperature.value !== 1.0) payload.temperature = temperature.value
+    if (maxTokens.value) payload.max_tokens = Number(maxTokens.value)
+    return payload
+  }
   const payload = { prompt: testPrompt.value }
   if (selectedProvider.value) payload.providerId = selectedProvider.value
   if (selectedModel.value) payload.model = selectedModel.value
@@ -310,7 +326,7 @@ const buildPayload = () => {
 
 const generatedCode = computed(() => {
   const url = window.location.origin
-  const path = selectedType.value === 'stream' ? '/api/ai/stream' : (selectedType.value === 'image' ? '/api/ai/image' : '/api/ai')
+  const path = selectedType.value === 'stream' ? '/api/ai/stream' : (selectedType.value === 'openai' ? '/v1/chat/completions' : (selectedType.value === 'image' ? '/api/ai/image' : '/api/ai'))
 
   const payload = buildPayload()
   const payloadStr = JSON.stringify(payload, null, 2)
@@ -549,7 +565,7 @@ const runTest = async () => {
   isRunning.value = true
   clearResult()
 
-  const path = selectedType.value === 'stream' ? '/api/ai/stream' : (selectedType.value === 'image' ? '/api/ai/image' : '/api/ai')
+  const path = selectedType.value === 'stream' ? '/api/ai/stream' : (selectedType.value === 'openai' ? '/v1/chat/completions' : (selectedType.value === 'image' ? '/api/ai/image' : '/api/ai'))
   const payload = buildPayload()
 
   try {
@@ -603,6 +619,15 @@ const runTest = async () => {
       if (selectedType.value === 'image') {
         liveImageUrl.value = data.imageUrl
         responseMetadata.value = { provider: data.provider, model: data.model }
+      } else if (selectedType.value === 'openai') {
+        responseMetadata.value = {
+          provider: data.model,
+          model: data.model,
+          inputTokens: data.usage?.prompt_tokens,
+          outputTokens: data.usage?.completion_tokens,
+          tokens: data.usage?.total_tokens
+        }
+        liveResult.value = data.choices?.[0]?.message?.content || JSON.stringify(data)
       } else {
         responseMetadata.value = {
           provider: data.provider,
@@ -644,6 +669,8 @@ watch(selectedType, () => {
   selectedModel.value = ''
   if (selectedType.value === 'image') {
     testPrompt.value = 'A futuristic cybernetic city, high detail, 8k'
+  } else if (selectedType.value === 'openai') {
+    testPrompt.value = 'What is the capital of France?'
   } else {
     testPrompt.value = 'What is the capital of France? (answer in max 10 words)'
   }

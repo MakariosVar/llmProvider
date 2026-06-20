@@ -156,7 +156,7 @@ class Orchestrator {
     }
 
     async generate(params) {
-        const { prompt, messages: history, systemPrompt, temperature = 0.7 } = params;
+        const { prompt, messages: history, systemPrompt, temperature = 0.7, max_tokens } = params;
         let requestedModel = params.model;
 
         // If no explicit model, check if mode is a specific model name (not an abstract mode)
@@ -232,7 +232,7 @@ class Orchestrator {
                 const startTime = Date.now();
                 try {
                     logger.info(`Trying provider: ${provider.name}, model: ${model}`);
-                    const response = await this.callProvider(provider, prompt, systemPrompt, temperature, model, 'text', history);
+                    const response = await this.callProvider(provider, prompt, systemPrompt, temperature, model, 'text', history, max_tokens);
                     const endTime = Date.now();
                     const responseTime = endTime - startTime;
 
@@ -329,7 +329,7 @@ class Orchestrator {
         throw new AllProvidersFailedError(allErrors);
     }
 
-    async callProvider(provider, prompt, systemPrompt, temperature, model = null, type = 'text', history = null) {
+    async callProvider(provider, prompt, systemPrompt, temperature, model = null, type = 'text', history = null, max_tokens = null) {
         // This is where we normalize the API calls.
         // Most support OpenAI compatible API.
 
@@ -540,13 +540,9 @@ class Orchestrator {
         const data = {
             model: selectedModel,
             messages: messages,
-            temperature: temperature
+            temperature: temperature,
+            ...(max_tokens ? { max_tokens } : {})
         };
-
-        // Ollama specific
-        // if (provider.id === 'ollama') {
-        //     data.stream = false;
-        // }
 
         const response = await axiosInstance.post(url, data, { headers });
         providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
@@ -564,7 +560,7 @@ class Orchestrator {
     // Stream-friendly wrapper: calls a provider (or fallback) and emits chunks
     // via the provided `onData(chunk)` callback.
     async stream(params, onData) {
-        const { prompt, messages: history, systemPrompt, temperature = 0.7 } = params;
+        const { prompt, messages: history, systemPrompt, temperature = 0.7, max_tokens } = params;
         let requestedModel = params.model;
         if (!requestedModel && params.mode && !['fast', 'smart', 'coding', 'general', 'pending'].includes(params.mode)) {
             requestedModel = params.mode;
@@ -634,7 +630,7 @@ class Orchestrator {
                     await this.callProviderStream(provider, prompt, systemPrompt, temperature, model, (chunk) => {
                         fullContent += chunk;
                         if (typeof onData === 'function') onData({ type: 'data', token: chunk });
-                    }, history);
+                    }, history, max_tokens);
 
                     const endTime = Date.now();
                     const responseTime = endTime - startTime;
@@ -732,7 +728,7 @@ class Orchestrator {
         throw new AllProvidersFailedError(allErrors);
     }
 
-    async callProviderStream(provider, prompt, systemPrompt, temperature, model = null, onChunk, history = null) {
+    async callProviderStream(provider, prompt, systemPrompt, temperature, model = null, onChunk, history = null, max_tokens = null) {
         const selectedModel = model || provider.models[0];
         let url = provider.endpoint.replace('{model}', selectedModel).replace('{accountId}', provider.accountId || '');
         if (provider.id === 'ollama') {
@@ -904,7 +900,8 @@ class Orchestrator {
             model: selectedModel,
             messages: messages,
             temperature: temperature,
-            stream: true
+            stream: true,
+            ...(max_tokens ? { max_tokens } : {})
         };
 
         const response = await axiosInstance.post(url, data, {

@@ -258,6 +258,132 @@ app.post('/api/status/check', async (req, res) => {
     }
 });
 
+// OpenAI-compatible /v1/chat/completions endpoint
+function openaiMessagesToInternal(messages) {
+    let systemPrompt = '';
+    const history = [];
+    let prompt = '';
+
+    for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (msg.role === 'system') {
+            systemPrompt = (systemPrompt ? systemPrompt + '\n' : '') + msg.content;
+        } else if (i === messages.length - 1 && msg.role === 'user') {
+            prompt = msg.content;
+        } else {
+            history.push({ role: msg.role === 'assistant' ? 'ai' : 'user', content: msg.content });
+        }
+    }
+
+    return { systemPrompt, history, prompt };
+}
+
+app.post('/v1/chat/completions', async (req, res) => {
+    const { model, messages, temperature, max_tokens, stream: doStream } = req.body;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+        return res.status(400).json({
+            error: { message: 'messages is required and must be a non-empty array', type: 'invalid_request_error', param: 'messages', code: null }
+        });
+    }
+
+    for (const msg of messages) {
+        if (!msg.role || typeof msg.role !== 'string' || !msg.content || typeof msg.content !== 'string') {
+            return res.status(400).json({
+                error: { message: 'Each message must have a valid role and content string', type: 'invalid_request_error', param: 'messages', code: null }
+            });
+        }
+    }
+
+    const { systemPrompt, history, prompt } = openaiMessagesToInternal(messages);
+    const params = { prompt, messages: history, systemPrompt, temperature, model, max_tokens };
+
+    if (doStream) {
+        const id = 'chatcmpl-' + Date.now() + Math.random().toString(36).slice(2, 8);
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        });
+        res.flushHeaders && res.flushHeaders();
+
+        let modelName = model || 'unknown';
+
+        try {
+            await orchestrator.stream(params, (payload) => {
+                if (payload.type === 'start') {
+                    modelName = payload.model;
+                    const chunk = {
+                        id, object: 'chat.completion.chunk',
+                        created: Math.floor(Date.now() / 1000),
+                        model: modelName,
+                        choices: [{ index: 0, delta: { role: 'assistant', content: '' }, finish_reason: null }]
+                    };
+                    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                } else if (payload.type === 'data') {
+                    const chunk = {
+                        id, object: 'chat.completion.chunk',
+                        created: Math.floor(Date.now() / 1000),
+                        model: modelName,
+                        choices: [{ index: 0, delta: { content: payload.token }, finish_reason: null }]
+                    };
+                    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                } else if (payload.type === 'end') {
+                    const chunk = {
+                        id, object: 'chat.completion.chunk',
+                        created: Math.floor(Date.now() / 1000),
+                        model: modelName,
+                        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
+                    };
+                    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+                    res.write('data: [DONE]\n\n');
+                    res.end();
+                }
+            });
+        } catch (error) {
+            try {
+                const errChunk = {
+                    id, object: 'chat.completion.chunk',
+                    created: Math.floor(Date.now() / 1000),
+                    model: modelName,
+                    choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
+                };
+                res.write(`data: ${JSON.stringify(errChunk)}\n\n`);
+                res.write('data: [DONE]\n\n');
+                res.end();
+            } catch (e) { /* ignore */ }
+        }
+
+        io.emit('status_update', providerManager.getAllProviders());
+        io.emit('usage_update');
+    } else {
+        try {
+            const result = await orchestrator.generate(params);
+            const id = 'chatcmpl-' + Date.now() + Math.random().toString(36).slice(2, 8);
+            res.json({
+                id,
+                object: 'chat.completion',
+                created: Math.floor(Date.now() / 1000),
+                model: result.model,
+                choices: [{ index: 0, message: { role: 'assistant', content: result.content }, finish_reason: 'stop' }],
+                usage: {
+                    prompt_tokens: result.inputTokens,
+                    completion_tokens: result.outputTokens,
+                    total_tokens: result.tokens
+                }
+            });
+            log(`OpenAI-compatible request served by ${result.provider}`);
+            io.emit('status_update', providerManager.getAllProviders());
+            io.emit('usage_update');
+        } catch (error) {
+            log(`OpenAI-compatible request failed: ${error.message}`);
+            res.status(500).json({
+                error: { message: error.message, type: 'server_error', param: null, code: null }
+            });
+        }
+    }
+});
+
 // Socket.io connection
 io.on('connection', (socket) => {
     log(`Client connected: ${socket.id}`);
