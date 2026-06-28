@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[var(--bg-color)] text-[var(--text-color)] font-sans selection:bg-indigo-500/30">
     <!-- Navbar -->
-    <nav v-if="authStore.isAuthenticated" class="sticky top-0 z-50 border-b border-[var(--border-color)] bg-[var(--bg-color)]/80 backdrop-blur-md">
+    <nav v-if="authStore.isAuthenticated && !route.meta?.hideNav" class="sticky top-0 z-50 border-b border-[var(--border-color)] bg-[var(--bg-color)]/80 backdrop-blur-md">
       <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <img :src="!themeStore.isDark ? '/logo_white_bg.png' : '/logo_black_bg.png'" alt="Logo" class="h-8 w-8">
@@ -22,7 +22,7 @@
       </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
+    <main :class="route.meta?.hideNav ? 'h-dvh overflow-hidden' : 'max-w-7xl mx-auto px-6 py-8'">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
@@ -34,12 +34,13 @@
 
 <script setup>
 import { useAuthStore, useThemeStore } from './store'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import ThemeToggle from './components/ThemeToggle.vue'
 
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const router = useRouter()
+const route = useRoute()
 const navItems = [
   { name: 'Status', path: '/status' },
   { name: 'Chat', path: '/chat' },
@@ -48,7 +49,8 @@ const navItems = [
   { name: 'Usage', path: '/usage' },
   { name: 'Quota', path: '/quota' },
   { name: 'API', path: '/test-api' },
-  { name: 'Docs', path: '/docs' }
+  { name: 'Docs', path: '/docs' },
+  { name: 'Monitor', path: '/monitor' }
 ]
 
 const logout = () => {
