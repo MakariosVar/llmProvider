@@ -18,8 +18,9 @@ export default {
                 'llama-3.3-70b-versatile',
                 'openai/gpt-oss-120b',
                 'qwen/qwen3-32b',
+                'qwen/qwen3.6-27b',
                 'openai/gpt-oss-20b',
-                'llama-3.1-8b-instant'
+                'llama-3.1-8b-instant',       
             ],
             rpm: 30,
             daily_limit: 14400,
@@ -59,8 +60,6 @@ export default {
             models: [
                 'gpt-4o',
                 'gpt-4o-mini',
-                'Meta-Llama-3.1-405B-Instruct',
-                'Meta-Llama-3.1-8B-Instruct'
             ],
             rpm: 0,
             daily_limit: 0,
