@@ -5,6 +5,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import config from './src/config.js';
 import orchestrator from './src/orchestrator.js';
 import healthChecker from './src/healthChecker.js';
@@ -15,6 +16,8 @@ import { countTokens } from './src/utils/tokenCounter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const sessions = new Map();
 
 const app = express();
 const httpServer = createServer(app);
@@ -74,11 +77,21 @@ const validateGenerateParams = (req, res, next) => {
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (username === config.admin.username && password === config.admin.password) {
-        res.json({ success: true });
+        const token = crypto.randomUUID();
+        sessions.set(token, Date.now());
+        res.json({ success: true, token });
     } else {
         res.status(401).json({ error: 'Invalid credentials' });
     }
 });
+
+const requireAuth = (req, res, next) => {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ') || !sessions.has(auth.slice(7))) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+};
 
 app.post('/api/ai/image', validateGenerateParams, async (req, res) => {
     try {
@@ -245,7 +258,7 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-app.get('/api/settings', async (req, res) => {
+app.get('/api/settings', requireAuth, async (req, res) => {
     try {
         const envPath = path.join(__dirname, '.env');
         
@@ -314,7 +327,7 @@ const PROVIDER_TESTS = {
     }
 };
 
-app.post('/api/settings/test/:key', async (req, res) => {
+app.post('/api/settings/test/:key', requireAuth, async (req, res) => {
     const { key } = req.params;
     const value = req.body.value;
     const originalValue = process.env[key];
@@ -360,7 +373,7 @@ app.post('/api/settings/test/:key', async (req, res) => {
     }
 });
 
-app.post('/api/settings', async (req, res) => {
+app.post('/api/settings', requireAuth, async (req, res) => {
     try {
         const envPath = path.join(__dirname, '.env');
         

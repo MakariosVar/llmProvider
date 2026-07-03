@@ -39,6 +39,7 @@ const login = async () => {
     })
     
     if (response.data.success) {
+      sessionStorage.setItem('authToken', response.data.token)
       authStore.login()
       router.push('/status')
     }

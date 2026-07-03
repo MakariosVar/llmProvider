@@ -689,7 +689,6 @@ const fetchData = async () => {
         Monthly: { requests: monthlyRes.data.totalRequests, tokens: (monthlyRes.data.totalInputTokens || 0) + (monthlyRes.data.totalOutputTokens || 0) }
     }
     
-    console.log("DEBUG: API Stats Data:", statsRes.data);
     await Promise.all([
         fetchHistory(),
         fetchTimeSeries()

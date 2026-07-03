@@ -220,9 +220,14 @@ const getPlaceholder = (key) => {
   return placeholders[key] || ''
 }
 
+const authHeaders = () => {
+  const token = sessionStorage.getItem('authToken')
+  return token ? { 'Authorization': `Bearer ${token}` } : {}
+}
+
 const loadSettings = async () => {
   try {
-    const response = await fetch('/api/settings')
+    const response = await fetch('/api/settings', { headers: authHeaders() })
     if (!response.ok) {
       throw new Error(`Failed to load settings: ${response.status}`)
     }
@@ -254,7 +259,8 @@ const testKey = async (key) => {
     const response = await fetch(`/api/settings/test/${key}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...authHeaders()
       },
       body: JSON.stringify({ value: settings[key] })
     })
@@ -289,7 +295,8 @@ const saveSettings = async () => {
     const response = await fetch('/api/settings', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...authHeaders()
       },
       body: JSON.stringify(settings)
     })
