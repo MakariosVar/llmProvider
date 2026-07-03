@@ -58,6 +58,7 @@ const navItems = [
   { name: 'Quota', path: '/quota' },
   { name: 'API', path: '/test-api' },
   { name: 'Docs', path: '/docs' },
+  { name: 'Settings', path: '/settings' },
   { name: 'Monitor', path: '/monitor' }
 ]
 

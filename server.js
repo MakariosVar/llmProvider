@@ -1,3 +1,4 @@
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -242,6 +243,145 @@ app.get('/api/usage/pricing', (req, res) => {
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+app.get('/api/settings', async (req, res) => {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        
+        await fs.promises.access(envPath);
+        const envContent = await fs.promises.readFile(envPath, 'utf8');
+        
+        const settings = {};
+        const lines = envContent.split('\n');
+        
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+                const [key, ...valueParts] = trimmed.split('=');
+                if (key && valueParts.length > 0) {
+                    settings[key] = valueParts.join('=');
+                }
+            }
+        });
+        
+        res.json(settings);
+    } catch (error) {
+        console.error('GET /api/settings Error:', error);
+        res.status(500).json({
+            error: 'Failed to read settings file',
+            message: error.message
+        });
+    }
+});
+
+const PROVIDER_TESTS = {
+    GEMINI_API_KEY: {
+        url: (v) => `https://generativelanguage.googleapis.com/v1beta/models?key=${v}`,
+        headers: () => ({})
+    },
+    GROQ_API_KEY: {
+        url: () => 'https://api.groq.com/openai/v1/models',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    },
+    CEREBRAS_API_KEY: {
+        url: () => 'https://api.cerebras.ai/v1/models',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    },
+    HF_API_KEY: {
+        url: () => 'https://huggingface.co/api/models?search=test&limit=1',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    },
+    OPENROUTER_API_KEY: {
+        url: () => 'https://openrouter.ai/api/v1/models',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    },
+    MISTRAL_API_KEY: {
+        url: () => 'https://api.mistral.ai/v1/models',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    },
+    COHERE_API_KEY: {
+        url: () => 'https://api.cohere.com/v1/models',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    },
+    NOVITA_API_KEY: {
+        url: () => 'https://api.novita.ai/v3/openai/models',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    },
+    GITHUB_TOKEN: {
+        url: () => 'https://api.github.com/user',
+        headers: (v) => ({ 'Authorization': `Bearer ${v}` })
+    }
+};
+
+app.post('/api/settings/test/:key', async (req, res) => {
+    const { key } = req.params;
+    const value = req.body.value;
+    const originalValue = process.env[key];
+    
+    try {
+        if (!value) {
+            return res.status(400).json({ error: 'Missing value' });
+        }
+        
+        process.env[key] = value;
+        
+        if (key === 'CLOUDFLARE_TOKEN' && process.env.CLOUDFLARE_ACCOUNT_ID) {
+            const testUrl = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-4-scout-17b-16e-instruct`;
+            const response = await fetch(testUrl, {
+                headers: { 'Authorization': `Bearer ${value}` }
+            });
+            if (!response.ok) {
+                throw new Error(`Cloudflare API test failed: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (!data.result) {
+                throw new Error('Cloudflare API test failed: No result data');
+            }
+            res.json({ success: true, message: 'Cloudflare API key test successful', data });
+        } else if (PROVIDER_TESTS[key]) {
+            const { url, headers } = PROVIDER_TESTS[key];
+            const response = await fetch(url(value), { headers: headers(value) });
+            if (!response.ok) {
+                throw new Error(`API test failed: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            res.json({ success: true, message: 'API key test successful', data });
+        } else {
+            res.json({ success: true, message: 'Value updated' });
+        }
+    } catch (error) {
+        console.error(`Test failed for ${key}: ${error.message}`);
+        res.status(400).json({ success: false, error: error.message });
+    } finally {
+        if (originalValue !== undefined) {
+            process.env[key] = originalValue;
+        }
+    }
+});
+
+app.post('/api/settings', async (req, res) => {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        
+        await fs.promises.access(envPath);
+        let envContent = await fs.promises.readFile(envPath, 'utf8');
+        
+        Object.keys(req.body).forEach(key => {
+            const newValue = req.body[key];
+            const regex = new RegExp(`^${key}=.*$`, 'm');
+            if (regex.test(envContent)) {
+                envContent = envContent.replace(regex, `${key}=${newValue}`);
+            }
+        });
+        
+        await fs.promises.writeFile(envPath, envContent, 'utf8');
+        log('Settings updated successfully');
+        res.json({ success: true, message: 'Settings updated successfully' });
+    } catch (error) {
+        log(`Failed to update settings: ${error.message}`);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 app.post('/api/status/check', async (req, res) => {

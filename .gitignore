@@ -4,6 +4,7 @@ yarn.lock
 .env
 !.env.example
 
+.log
 .git
 *.db
 .hg
