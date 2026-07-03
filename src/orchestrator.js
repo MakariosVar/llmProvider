@@ -104,10 +104,13 @@ class Orchestrator {
             .sort((a, b) => a.priority - b.priority);
 
         if (requestedModel) {
-            candidates = candidates.filter(p => {
+            let candidatesFiltered = candidates.filter(p => {
                 const models = providerManager.getAllModels(p.id, 'image');
                 return models.includes(requestedModel);
             });
+            if (candidatesFiltered.length > 0) {
+                candidates = candidatesFiltered;
+            }
         }
 
         if (candidates.length === 0) {
