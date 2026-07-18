@@ -106,6 +106,22 @@ export default {
                 'Accept': 'application/vnd.github+json'
             }
         },
+        OVHcloud: {
+            name: 'OVHcloud',
+            key: '',
+            models: [
+                'Meta-Llama-3_3-70B-Instruct',
+                'Mistral-Nemo-Instruct-2407',
+                'Mistral-Small-3.2-24B-Instruct-2506',
+                'Qwen3.5-9B',
+            ],
+            rpm: 2,
+            daily_limit: 1000,
+            daily_token_limit: 1000000,
+            priority: 5.5,
+            heavy_usage: 92,
+            endpoint: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions'  
+        },
         google_gemini: {
             name: 'Google Gemini',
             key: process.env.GEMINI_API_KEY,

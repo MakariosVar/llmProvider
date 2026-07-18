@@ -50,7 +50,7 @@ async function runTests() {
         console.log(`\nTesting ${provider.name}:`);
 
         // Skip if no key
-        if (!provider.key && provider.id !== 'ollama' && provider.id !== 'openrouter' && provider.id !== 'apifreellm') {
+        if (!provider.key && provider.id !== 'ollama' && provider.id !== 'openrouter' && provider.id !== 'OVHcloud') {
             console.log('  SKIPPED (No Key)');
             continue;
         }
