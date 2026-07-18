@@ -25,7 +25,7 @@ execSync(
 // 3. Compile standalone executable with pkg
 console.log('Compiling executable...');
 execSync(
-  `npx pkg ${ROOT}/bundle.mjs --config package.json --output=${DIST}/llm-provider-server`,
+  `npx @yao-pkg/pkg ${ROOT}/bundle.mjs --config package.json --output=${DIST}/llm-provider-server`,
   { stdio: 'inherit', timeout: 300000 }
 );
 
