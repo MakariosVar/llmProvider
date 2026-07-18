@@ -10,6 +10,21 @@ export default {
         password: process.env.ADMIN_PASSWORD || 'admin'
     },
     providers: {
+        zai_org: {
+            name: "Z.ai",
+            key: process.env.ZAI_API_KEY,
+            
+            models: [
+                'glm-4.5-Flash',
+                'glm-4.7-Flash',
+            ],
+            rpm: 20,
+            daily_limit: 1000,
+            daily_token_limit: 1000000,
+            priority: 1,
+            heavy_usage: 92,
+            endpoint: 'https://api.z.ai/api/paas/v4/chat/completions'
+        },
         groq: {
             name: 'Groq',
             key: process.env.GROQ_API_KEY,
@@ -23,7 +38,7 @@ export default {
             rpm: 30,
             daily_limit: 14400,
             daily_token_limit: 1440000,
-            priority: 1,
+            priority: 2,
             heavy_usage: 90,
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
         },
@@ -37,7 +52,7 @@ export default {
             rpm: 5,
             daily_limit: 1000,
             daily_token_limit: 1000000,
-            priority: 2,
+            priority: 3,
             heavy_usage: 92,
             endpoint: 'https://api.cerebras.ai/v1/chat/completions'
         },
@@ -48,7 +63,7 @@ export default {
             rpm: 2,
             daily_limit: 33000000,
             daily_token_limit: 33000000,
-            priority: 3,
+            priority: 4,
             heavy_usage: 65,
             endpoint: 'https://api.mistral.ai/v1/chat/completions'
         },
@@ -62,7 +77,7 @@ export default {
             rpm: 0,
             daily_limit: 0,
             daily_token_limit: 0,
-            priority: 4,
+            priority: 5,
             heavy_usage: 78,
             endpoint: 'https://models.inference.ai.azure.com/chat/completions',
             headers: {
@@ -80,7 +95,7 @@ export default {
             rpm: 10,
             daily_limit: 1500,
             daily_token_limit: 250000,
-            priority: 5,
+            priority: 6,
             heavy_usage: 95,
             endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
         },
@@ -94,7 +109,7 @@ export default {
             rpm: 5,
             daily_limit: 100,
             daily_token_limit: 100000,
-            priority: 6,
+            priority: 7,
             heavy_usage: 60,
             endpoint: 'https://router.huggingface.co/v1/chat/completions'
         },
@@ -105,7 +120,7 @@ export default {
             rpm: 20,
             daily_limit: 33,
             daily_token_limit: 10000,
-            priority: 7,
+            priority: 8,
             heavy_usage: 72,
             endpoint: 'https://api.cohere.ai/v2/chat'
         },
@@ -118,7 +133,7 @@ export default {
             rpm: 20,
             daily_limit: 50,
             daily_token_limit: 50000,
-            priority: 8,
+            priority: 9,
             heavy_usage: 70,
             endpoint: 'https://openrouter.ai/api/v1/chat/completions'
         },
@@ -135,7 +150,7 @@ export default {
             rpm: 30,
             daily_limit: 10000,
             daily_token_limit: 10000,
-            priority: 9,
+            priority: 10,
             heavy_usage: 80,
             endpoint: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/{model}',
             imageModels: [
@@ -154,7 +169,7 @@ export default {
             rpm: 0,
             daily_limit: 0,
             daily_token_limit: 0,
-            priority: 10,
+            priority: 11,
             heavy_usage: 72,
             endpoint: 'https://api.novita.ai/v3/openai/chat/completions'
         },
