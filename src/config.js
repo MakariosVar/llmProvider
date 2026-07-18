@@ -42,6 +42,22 @@ export default {
             heavy_usage: 90,
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
         },
+        nvidia_nim: {
+            name: 'Nvidia NIM',
+            key: process.env.NVIDIA_API_KEY,
+            models: [
+                'minimaxai/minimax-m3',
+                'nvidia/nemotron-3-super-120b-a12b',
+                'nvidia/nemotron-3-ultra-550b-a55b',
+                'deepseek-ai/deepseek-v4-flash',
+            ],
+            rpm: 40,
+            daily_limit: 1000,
+            daily_token_limit: 1000000,
+            priority: 3,
+            heavy_usage: 92,
+            endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions'
+        },
         cerebras: {
             name: 'Cerebras',
             key: process.env.CEREBRAS_API_KEY,
@@ -52,7 +68,7 @@ export default {
             rpm: 5,
             daily_limit: 1000,
             daily_token_limit: 1000000,
-            priority: 3,
+            priority: 3.5,
             heavy_usage: 92,
             endpoint: 'https://api.cerebras.ai/v1/chat/completions'
         },
