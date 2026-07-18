@@ -10,7 +10,6 @@ import Usage from './components/Usage.vue'
 import Quota from './components/Quota.vue'
 import NotFound from './components/NotFound.vue'
 import { useAuthStore } from './store'
-import Monitor from './components/Monitor.vue'
 import Settings from './components/Settings.vue'
 
 const routes = [
@@ -25,7 +24,6 @@ const routes = [
   { path: '/usage', component: Usage, meta: { requiresAuth: true } },
   { path: '/quota', component: Quota, meta: { requiresAuth: true } },
   { path: '/settings', component: Settings, meta: { requiresAuth: true } },
-  { path: '/monitor', component: Monitor, meta: { requiresAuth: true, hideNav: true } },
   { path: '/:pathMatch(.*)*', component: NotFound }
 ]
 

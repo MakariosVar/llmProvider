@@ -1,7 +1,17 @@
 <template>
-  <div class="bg-black text-gray-200 font-mono h-full overflow-hidden flex flex-col p-[2px] text-[9px] leading-[1.3]">
+  <div v-if="!providers || !providers.length" style="height: 100vh;">
+    <!-- bootstrap loader  -->
+    <div class="flex items-center justify-center h-full">
+      <div class="flex items-center gap-2">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <span class="text-white"></span>
+      </div>
+    </div>
+
+  </div>
+  <div v-else style="font-size:2rem !important" class="bg-black text-gray-200 font-mono h-full overflow-hidden flex flex-col p-[2px] text-[9px] leading-[1.3]">
     <div class="flex items-center justify-between shrink-0">
-      <router-link to="/status" class="text-gray-600 hover:text-white transition-colors no-underline">&larr; back</router-link>
+      <button @click="monitorStore.deactivate()" class="text-gray-600 hover:text-white transition-colors no-underline">&larr; back</button>
       <span class="text-gray-500">{{ now }}</span>
     </div>
     <div class="text-gray-600 border-b border-gray-800 shrink-0">
@@ -38,7 +48,9 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import io from 'socket.io-client'
+import { useMonitorStore } from '../store'
 
+const monitorStore = useMonitorStore()
 const stats = ref(null)
 const providers = ref([])
 const now = ref('')

@@ -35,3 +35,26 @@ export const useThemeStore = defineStore('theme', {
     }
   }
 })
+
+export const useMonitorStore = defineStore('monitor', {
+  state: () => ({
+    isActive: false,
+    previousPath: '/status'
+  }),
+  actions: {
+    toggle(currentPath) {
+      if (this.isActive) {
+        this.deactivate()
+      } else {
+        this.activate(currentPath)
+      }
+    },
+    activate(currentPath) {
+      this.previousPath = currentPath;
+      this.isActive = true;
+    },
+    deactivate() {
+      this.isActive = false;
+    }
+  }
+})
