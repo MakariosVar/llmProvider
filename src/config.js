@@ -14,10 +14,8 @@ export default {
             name: 'Groq',
             key: process.env.GROQ_API_KEY,
             models: [
-                'meta-llama/llama-4-scout-17b-16e-instruct',
                 'llama-3.3-70b-versatile',
                 'openai/gpt-oss-120b',
-                'qwen/qwen3-32b',
                 'qwen/qwen3.6-27b',
                 'openai/gpt-oss-20b',
                 'llama-3.1-8b-instant',       
@@ -89,7 +87,10 @@ export default {
         huggingface: {
             name: 'HuggingFace',
             key: process.env.HF_API_KEY,
-            models: ['meta-llama/Meta-Llama-3-8B-Instruct', 'Qwen/Qwen2.5-7B-Instruct'],
+            models: [
+                'deepseek-ai/DeepSeek-V4-Flash',
+                'Qwen/Qwen2.5-7B-Instruct',
+            ],
             rpm: 5,
             daily_limit: 100,
             daily_token_limit: 100000,
@@ -127,8 +128,8 @@ export default {
             accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
             models: [
                 "@cf/meta/llama-4-scout-17b-16e-instruct",
+                "@cf/moonshotai/kimi-k2.6",
                 "@cf/moonshotai/kimi-k2.7-code",
-                "@cf/zai-org/glm-4.7-flash",
                 "@cf/google/gemma-4-26b-a4b-it",
             ],
             rpm: 30,
@@ -139,7 +140,7 @@ export default {
             endpoint: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/{model}',
             imageModels: [
                 "@cf/bytedance/stable-diffusion-xl-lightning",
-                "@cf/black-forest-labs/flux-1-schnell"
+                "@cf/black-forest-labs/flux-1-schnell",
             ],
         },
         novita: {
