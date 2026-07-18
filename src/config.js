@@ -89,13 +89,18 @@ export default {
             models: [
                 'gpt-4o',
                 'gpt-4o-mini',
+                'deepseek-r1',
+                'phi-4-mini-instruct',
+                'gpt-4.1',
+                'gpt-4.1-mini',
+                'gpt-4.1-nano',
             ],
             rpm: 0,
             daily_limit: 0,
             daily_token_limit: 0,
             priority: 5,
             heavy_usage: 78,
-            endpoint: 'https://models.inference.ai.azure.com/chat/completions',
+            endpoint: 'https://models.github.ai/inference/chat/completions',
             headers: {
                 'X-GitHub-Api-Version': '2026-03-10',
                 'Accept': 'application/vnd.github+json'
