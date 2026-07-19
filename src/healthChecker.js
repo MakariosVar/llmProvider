@@ -24,10 +24,8 @@ class HealthChecker {
     async checkProvider(provider, force = false) {
         // Skip if no key provided (unless it's Ollama or doesn't need one)
         if (!provider.key && provider.id !== 'ollama' && provider.id !== 'openrouter' && provider.id !== 'OVHcloud' && provider.id !== 'pollinations') {
-            if (provider.id !== 'ollama' && provider.id !== 'apifreellm' && provider.id !== 'OVHcloud' && !provider.key) {
-                providerManager.updateStatus(provider.id, 'unconfigured');
-                return;
-            }
+            providerManager.updateStatus(provider.id, 'unconfigured');
+            return;
         }
 
         // Specific check for Ollama
