@@ -49,7 +49,6 @@ export default {
                 'minimaxai/minimax-m3',
                 'nvidia/nemotron-3-super-120b-a12b',
                 'nvidia/nemotron-3-ultra-550b-a55b',
-                'deepseek-ai/deepseek-v4-flash',
             ],
             rpm: 40,
             daily_limit: 1000,
@@ -110,7 +109,6 @@ export default {
             name: 'OVHcloud',
             key: '',
             models: [
-                'Meta-Llama-3_3-70B-Instruct',
                 'Mistral-Nemo-Instruct-2407',
                 'Mistral-Small-3.2-24B-Instruct-2506',
                 'Qwen3.5-9B',
