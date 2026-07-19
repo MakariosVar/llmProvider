@@ -129,7 +129,7 @@ const getThemeOptions = (overrides = {}) => {
         maintainAspectRatio: false,
         scales: {
             x: { ticks: { color: colors.text } },
-            y: { ticks: { color: colors.text } }
+            y: { beginAtZero: true, ticks: { color: colors.text } }
         },
         plugins: {
             legend: { 

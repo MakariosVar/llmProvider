@@ -13,7 +13,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
       <div class="p-6 bg-white border-2 border-black rounded-[1.5rem] shadow-premium">
-        <div class="text-sm font-bold uppercase tracking-widest text-slate-500">Total Nodes</div>
+        <div class="text-sm font-bold uppercase tracking-widest text-slate-500">Providers</div>
         <div class="text-4xl font-black mt-2">{{ providers.length }}</div>
       </div>
       <div class="p-6 bg-white border-2 border-black rounded-[1.5rem] shadow-premium">
