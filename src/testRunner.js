@@ -142,7 +142,6 @@ async function runTests() {
                 // Special handling for APIFreeLLM 500 errors (often transient or upstream issue)
                 const isApiFreeLlm500 = provider.id === 'apifreellm' && error.response?.status === 500;
 
-                const status = (isRateLimited || isCachedRateLimit || isBillingIssue || isQuotaIssue || isApiFreeLlm500 || isConfigIssue) ? 'error' : 'error';
                 // Note: We use 'error' status for log history even for warnings, 
                 // but we can pass the specific message.
 

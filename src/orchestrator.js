@@ -83,16 +83,6 @@ const axiosInstance = axios.create({
     timeout: 120000 // 2 minute timeout for long-running requests
 });
 
-/**
- * Destroys the HTTP and HTTPS agents.
- * Call this function during graceful shutdown to prevent resource leaks.
- */
-export function cleanupHttpAgents() {
-    logger.info('Destroying HTTP/HTTPS agents...');
-    httpAgent.destroy();
-    httpsAgent.destroy();
-}
-
 class Orchestrator {
     async generateImage(params) {
         const { prompt } = params;

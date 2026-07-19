@@ -14,11 +14,6 @@ class HealthChecker {
         this.interval = setInterval(() => this.checkAll(), this.checkInterval);
     }
 
-    stop() {
-        this.isRunning = false;
-        clearInterval(this.interval);
-    }
-
     async checkAll(force = false) {
         const providers = providerManager.getAllProviders();
         for (const provider of providers) {
