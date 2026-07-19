@@ -90,13 +90,10 @@ class ProviderManager {
         }
 
         for (const [key, providerConfig] of Object.entries(config.providers)) {
-            // Compute a heuristic heavy_usage score (0-100) based on model names and configured priority
-            const heavyUsageScore = this.computeHeavyUsage(providerConfig);
 
             this.providers[key] = {
                 ...providerConfig,
                 id: key,
-                heavy_usage: heavyUsageScore,
                 status: 'unknown', // unknown, online, offline, rate_limited
                 latency: 0,
                 lastUsed: 0,
@@ -155,29 +152,6 @@ class ProviderManager {
                     };
                 }
             }
-        }
-    }
-
-    computeHeavyUsage(providerConfig) {
-        try {
-            const models = providerConfig.models || [];
-            let score = 30 + (10 * (10 - (providerConfig.priority || 5)));
-
-            // Boost score for larger models or names that suggest "heavy" capability
-            for (const m of models) {
-                const name = String(m).toLowerCase();
-                if (name.includes('70b') || name.includes('70')) score += 30;
-                if (name.includes('llama') || name.includes('llama-3') || name.includes('llama3')) score += 20;
-                if (name.includes('mixtral') || name.includes('mixtral-8')) score += 10;
-                if (name.includes('8b')) score += 10;
-            }
-
-            // Clamp
-            if (score > 100) score = 100;
-            if (score < 0) score = 0;
-            return Math.round(score);
-        } catch (e) {
-            return 50;
         }
     }
 

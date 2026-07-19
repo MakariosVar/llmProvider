@@ -22,7 +22,6 @@ export default {
             daily_limit: 1000,
             daily_token_limit: 1000000,
             priority: 1,
-            heavy_usage: 92,
             endpoint: 'https://api.z.ai/api/paas/v4/chat/completions'
         },
         groq: {
@@ -39,7 +38,6 @@ export default {
             daily_limit: 14400,
             daily_token_limit: 1440000,
             priority: 2,
-            heavy_usage: 90,
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
         },
         nvidia_nim: {
@@ -54,7 +52,6 @@ export default {
             daily_limit: 1000,
             daily_token_limit: 1000000,
             priority: 3,
-            heavy_usage: 92,
             endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions'
         },
         cerebras: {
@@ -68,7 +65,6 @@ export default {
             daily_limit: 1000,
             daily_token_limit: 1000000,
             priority: 3.5,
-            heavy_usage: 92,
             endpoint: 'https://api.cerebras.ai/v1/chat/completions'
         },
         mistral_ai: {
@@ -79,7 +75,6 @@ export default {
             daily_limit: 33000000,
             daily_token_limit: 33000000,
             priority: 4,
-            heavy_usage: 65,
             endpoint: 'https://api.mistral.ai/v1/chat/completions'
         },
         github: {
@@ -98,7 +93,6 @@ export default {
             daily_limit: 0,
             daily_token_limit: 0,
             priority: 5,
-            heavy_usage: 78,
             endpoint: 'https://models.github.ai/inference/chat/completions',
             headers: {
                 'X-GitHub-Api-Version': '2026-03-10',
@@ -117,7 +111,6 @@ export default {
             daily_limit: 1000,
             daily_token_limit: 1000000,
             priority: 5.5,
-            heavy_usage: 92,
             endpoint: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions'  
         },
         google_gemini: {
@@ -131,7 +124,6 @@ export default {
             daily_limit: 1500,
             daily_token_limit: 250000,
             priority: 6,
-            heavy_usage: 95,
             endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
         },
         huggingface: {
@@ -145,7 +137,6 @@ export default {
             daily_limit: 100,
             daily_token_limit: 100000,
             priority: 7,
-            heavy_usage: 60,
             endpoint: 'https://router.huggingface.co/v1/chat/completions'
         },
         cohere: {
@@ -156,7 +147,6 @@ export default {
             daily_limit: 33,
             daily_token_limit: 10000,
             priority: 8,
-            heavy_usage: 72,
             endpoint: 'https://api.cohere.ai/v2/chat'
         },
         openrouter: {
@@ -169,7 +159,6 @@ export default {
             daily_limit: 50,
             daily_token_limit: 50000,
             priority: 9,
-            heavy_usage: 70,
             endpoint: 'https://openrouter.ai/api/v1/chat/completions'
         },
         cloudflare: {
@@ -186,7 +175,6 @@ export default {
             daily_limit: 10000,
             daily_token_limit: 10000,
             priority: 10,
-            heavy_usage: 80,
             endpoint: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/run/{model}',
             imageModels: [
                 "@cf/bytedance/stable-diffusion-xl-lightning",
@@ -205,7 +193,6 @@ export default {
             daily_limit: 0,
             daily_token_limit: 0,
             priority: 11,
-            heavy_usage: 72,
             endpoint: 'https://api.novita.ai/v3/openai/chat/completions'
         },
         ollama: {
@@ -216,7 +203,6 @@ export default {
             daily_limit: 100000,
             daily_token_limit: 100000000,
             priority: 15,
-            heavy_usage: 60,
             endpoint: '{host}/v1/chat/completions'
         },
         pollinations: {
