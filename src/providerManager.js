@@ -266,11 +266,6 @@ class ProviderManager {
         }
     }
 
-    isLikelyProviderWide(h) {
-        // Heuristic: If headers are present without model-specific context
-        return !!(h['x-ratelimit-limit-requests'] || h['anthropic-ratelimit-requests-limit']);
-    }
-
     parseResetTime(resetStr) {
         if (!resetStr) return null;
         if (!isNaN(resetStr)) {
@@ -325,31 +320,6 @@ class ProviderManager {
         }
     }
 
-    checkResetLimits(id) {
-        const usage = this.usage[id];
-        const now = Date.now();
-        let changed = false;
-
-        // Reset minute limit
-        if (now - usage.lastResetMinute > 60000) {
-            usage.requestsThisMinute = 0;
-            usage.lastResetMinute = now;
-            changed = true;
-        }
-
-        // Reset daily limit
-        if (now - usage.lastResetDay > 86400000) {
-            usage.requestsToday = 0;
-            usage.lastResetDay = now;
-            changed = true;
-        }
-
-        if (changed) {
-            statusPersistence.updateUsage(id, usage.requestsToday, usage.requestsThisMinute);
-        }
-    }
-
-
     // Model-level status management
     updateModelStatus(providerId, modelName, status, error = null) {
         if (!this.modelStatus[providerId]) {
@@ -375,17 +345,6 @@ class ProviderManager {
 
     getModelStatus(providerId, modelName) {
         return this.modelStatus[providerId]?.[modelName] || { status: 'unknown', lastError: null, lastSuccess: null };
-    }
-
-    getAvailableModels(providerId) {
-        const provider = this.providers[providerId];
-        if (!provider) return [];
-
-        // Return models that are not marked as offline or error
-        return (provider.models || []).filter(model => {
-            const status = this.getModelStatus(providerId, model);
-            return status.status !== 'offline';
-        });
     }
 
     getProvidersByType(type = 'text') {

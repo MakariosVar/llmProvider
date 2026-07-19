@@ -146,53 +146,6 @@ export class CircuitBreaker {
 
         return false;
     }
-
-    /**
-     * Get current state of a circuit
-     * @param {string} providerId
-     * @returns {{state: string, failures: number, nextAttempt: number|null}}
-     */
-    getState(providerId) {
-        const circuit = this.getCircuit(providerId);
-        return {
-            state: circuit.state,
-            failures: circuit.failures,
-            nextAttempt: circuit.nextAttempt,
-            canAttempt: this.isAvailable(providerId)
-        };
-    }
-
-    /**
-     * Manually reset a circuit (for testing or admin operations)
-     * @param {string} providerId
-     */
-    reset(providerId) {
-        if (this.circuits.has(providerId)) {
-            const circuit = this.circuits.get(providerId);
-            circuit.state = 'closed';
-            circuit.failures = 0;
-            circuit.nextAttempt = null;
-            circuit.halfOpenAttempts = 0;
-            circuit.halfOpenPermits = 0;
-        }
-    }
-
-    /**
-     * Get all circuit states
-     * @returns {Map} All circuits
-     */
-    getAllStates() {
-        const states = {};
-        for (const [providerId, circuit] of this.circuits) {
-            states[providerId] = {
-                state: circuit.state,
-                failures: circuit.failures,
-                nextAttempt: circuit.nextAttempt,
-                canAttempt: this.isAvailable(providerId)
-            };
-        }
-        return states;
-    }
 }
 
 export default CircuitBreaker;

@@ -143,15 +143,6 @@ class StatusPersistence {
         }
     }
 
-    getPricing(modelName) {
-        try {
-            return this.db.prepare('SELECT * FROM model_pricing WHERE model_name = ?').get(modelName);
-        } catch (error) {
-            console.error('Failed to get pricing from SQLite:', error.message);
-            return null;
-        }
-    }
-
     getAllPricing() {
         try {
             return this.db.prepare('SELECT * FROM model_pricing').all();
@@ -447,36 +438,6 @@ class StatusPersistence {
             console.error('Failed to get model status from SQLite:', error.message);
             return null;
         }
-    }
-
-    getAll() {
-        try {
-            const rows = this.db.prepare('SELECT * FROM model_status').all();
-            const result = {};
-            
-            for (const row of rows) {
-                if (!result[row.provider_id]) {
-                    result[row.provider_id] = {};
-                }
-                result[row.provider_id][row.model_name] = {
-                    status: row.status,
-                    lastUpdated: row.last_updated,
-                    error: row.error
-                };
-            }
-            return result;
-        } catch (error) {
-            console.error('Failed to get all model statuses from SQLite:', error.message);
-            return {};
-        }
-    }
-
-    load() {
-        // No-op for SQLite as it's always "loaded"
-    }
-
-    close() {
-        this.db.close();
     }
 }
 
