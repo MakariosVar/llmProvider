@@ -473,47 +473,6 @@ class Orchestrator {
             return response.data.message.content[0].text;
         }
 
-        // NLP Cloud generation endpoint
-        if (provider.id === 'nlpcloud') {
-            let fullText = (systemPrompt ? systemPrompt + "\n" : "");
-            if (history && history.length > 0) {
-                history.forEach(msg => {
-                    fullText += `${msg.role === 'ai' ? 'Assistant' : 'User'}: ${msg.content}\n`;
-                });
-            }
-            fullText += `User: ${prompt}\nAssistant:`;
-
-            const data = {
-                text: fullText,
-                max_length: 500
-            };
-            const response = await axiosInstance.post(url, data, { headers });
-            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
-            return response.data.generated_text;
-        }
-
-        // APIFreeLLM Specific
-        if (provider.id === 'apifreellm') {
-            let fullText = (systemPrompt ? systemPrompt + "\n" : "");
-            if (history && history.length > 0) {
-                history.forEach(msg => {
-                    fullText += `${msg.role === 'ai' ? 'Assistant' : 'User'}: ${msg.content}\n`;
-                });
-            }
-            fullText += `User: ${prompt}`;
-
-            const data = {
-                message: fullText
-            };
-            const response = await axiosInstance.post(url, data, { headers });
-            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
-            if (response.data.status === 'success') {
-                return response.data.response;
-            } else {
-                throw new Error(response.data.error || 'Unknown error from APIFreeLLM');
-            }
-        }
-
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
         
