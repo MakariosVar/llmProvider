@@ -10,8 +10,9 @@ yarn.lock
 *.db
 .hg
 
-!README.md
 *.md
+!README.md
+!AGENTS.md
 
 status_db.*
 
