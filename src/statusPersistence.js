@@ -369,6 +369,55 @@ class StatusPersistence {
         }
     }
 
+    fillTimeGaps(data, interval) {
+        if (data.length < 2) return data;
+
+        const result = [];
+        const dataMap = new Map(data.map(d => [d.label, d]));
+        const labels = data.map(d => d.label);
+
+        let current = new Date(labels[0]);
+        const end = new Date(labels[labels.length - 1]);
+
+        const increments = {
+            minute: () => current.setMinutes(current.getMinutes() + 1),
+            hour: () => current.setHours(current.getHours() + 1),
+            day: () => current.setDate(current.getDate() + 1),
+            month: () => current.setMonth(current.getMonth() + 1)
+        };
+
+        const step = increments[interval] || increments.day;
+
+        const formatFns = {
+            minute: () => {
+                const mm = String(current.getMinutes()).padStart(2, '0');
+                return `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')} ${String(current.getHours()).padStart(2, '0')}:${mm}`;
+            },
+            hour: () => {
+                return `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')} ${String(current.getHours()).padStart(2, '0')}:00`;
+            },
+            day: () => {
+                return `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+            },
+            month: () => {
+                return `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+            }
+        };
+        const format = formatFns[interval] || formatFns.day;
+
+        while (current <= end) {
+            const label = format();
+            if (dataMap.has(label)) {
+                result.push(dataMap.get(label));
+            } else {
+                result.push({ label, value: 0 });
+            }
+            step();
+        }
+
+        return result;
+    }
+
     getTimeSeriesStats(interval = 'day', metric = 'requests', filters = {}) {
         try {
             let dateFormat = '%Y-%m-%d';
@@ -414,7 +463,8 @@ class StatusPersistence {
             else if (interval === 'day') query += ' LIMIT 60';
             else if (interval === 'month') query += ' LIMIT 24';
 
-            return this.db.prepare(query).all(...params);
+            const data = this.db.prepare(query).all(...params);
+            return this.fillTimeGaps(data, interval);
         } catch (error) {
             console.error('Failed to get time series stats:', error.message);
             return [];
