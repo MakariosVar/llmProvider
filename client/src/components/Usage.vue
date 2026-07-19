@@ -50,7 +50,7 @@
       <div v-for="stat in tokenStats" :key="stat.label" class="bg-[var(--bg-color)] border border-[var(--border-color)] p-6 rounded-2xl shadow-xl flex flex-col gap-2 border-t-[3px] border-t-[var(--accent-bg)]">
         <span class="text-[10px] font-black text-[var(--text-color)] opacity-50 uppercase tracking-[0.2em]">{{ stat.label }}</span>
         <!-- Dual layout for TPS card -->
-        <div v-if="stat.dual" class="flex items-end gap-4">
+        <div v-if="stat.dual" class="flex items-end gap-2">
           <div class="flex flex-col">
             <span class="text-[9px] font-bold text-[var(--text-color)] opacity-40 uppercase tracking-wider">Input</span>
             <span class="text-2xl font-black text-[var(--text-color)] leading-tight">{{ stat.dual.input }}</span>
@@ -60,7 +60,6 @@
             <span class="text-[9px] font-bold text-[var(--text-color)] opacity-40 uppercase tracking-wider">Output</span>
             <span class="text-2xl font-black text-[var(--text-color)] leading-tight">{{ stat.dual.output }}</span>
           </div>
-          <span class="text-xs font-bold text-[var(--text-color)] opacity-60 pb-0.5">tok/s</span>
         </div>
         <!-- Standard layout -->
         <div v-else class="flex items-baseline gap-2">
