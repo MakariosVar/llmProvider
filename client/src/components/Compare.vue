@@ -56,7 +56,7 @@
     <!-- Response Content Comparison -->
     <div class="flex gap-6 flex-1 min-h-0">
       <div v-for="pane in ['A', 'B']" :key="pane" class="flex-1 flex flex-col bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div class="p-4 border-b border-slate-800 bg-slate-950/50 flex justify-between items-center gap-2">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center gap-2">
             <h2 class="font-bold text-white flex items-center gap-2 whitespace-nowrap">
               <span class="w-2 h-2 rounded-full" :class="pane === 'A' ? 'bg-indigo-500' : 'bg-emerald-500'"></span>
               Output {{ pane }}
