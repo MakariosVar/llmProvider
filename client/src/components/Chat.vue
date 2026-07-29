@@ -2,13 +2,31 @@
   <div class="h-[calc(100vh-8rem)] flex flex-col gap-6">
     <!-- Chat Area -->
     <div class="flex-1 flex flex-col rounded-premium shadow-premium overflow-hidden border-2 border-black">
-      <div class="p-4 border-b-2 border-black flex justify-between items-center bg-white">
+      <div class="p-4 border-b-2 border-black flex flex-wrap justify-between items-center gap-3 bg-white">
         <h2 class="font-black text-xl flex items-center gap-2">
           <span class="w-3 h-3 rounded-full bg-black"></span>
           COMMAND TERMINAL
         </h2>
-        <div class="flex gap-2">
-          <v-select v-model="selectedProvider" :options="providers.map(p => ({label: p.name, code: p.id, status: p.status}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="w-64 bg-white" :append-to-body="true">
+        <div class="flex flex-wrap gap-2 items-center">
+          <button
+            @click="showHistoryModal = true"
+            class="px-3 py-2 rounded-[1rem] border-2 border-black font-bold text-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            History
+          </button>
+          <button
+            @click="startNewChat"
+            class="px-3 py-2 rounded-[1rem] border-2 border-black font-bold text-sm hover:bg-black hover:text-white transition-colors flex items-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            New
+          </button>
+          <v-select v-model="selectedProvider" :options="providers.map(p => ({label: p.name, code: p.id, status: p.status}))" label="label" :reduce="option => option.code" placeholder="Select Provider" class="w-48 sm:w-64 bg-white" :append-to-body="true">
             <template #option="{ label, status }">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
@@ -22,7 +40,7 @@
               </div>
             </template>
           </v-select>
-          <v-select v-model="selectedModel" :options="availableModels" label="label" :reduce="option => option.code" placeholder="Select Model" class="w-64 bg-white" :append-to-body="true">
+          <v-select v-model="selectedModel" :options="availableModels" label="label" :reduce="option => option.code" placeholder="Select Model" class="w-48 sm:w-64 bg-white" :append-to-body="true">
             <template #option="{ label, status }">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full" :class="getStatusColor(status)"></span>
@@ -40,6 +58,10 @@
       </div>
       
       <div class="flex-1 p-6 overflow-y-auto space-y-4 bg-white" ref="chatContainer">
+        <div v-if="messages.length === 0" class="h-full flex flex-col items-center justify-center opacity-30 select-none">
+          <p class="font-black text-2xl uppercase">Ready for input</p>
+          <p class="text-sm font-bold mt-2">Type a command below to begin</p>
+        </div>
         <div v-for="msg in messages" :key="msg.id" :class="msg.role === 'user' ? 'text-right' : 'text-left'">
           <div class="inline-block p-4 rounded-[1rem] max-w-[80%] border-2 border-black font-medium" :class="msg.role === 'user' ? 'bg-black text-white' : 'bg-white text-black'">
             <div v-if="msg.role === 'ai'" class="flex justify-between items-center text-[10px] font-bold uppercase mb-1 opacity-70 gap-4">
@@ -67,15 +89,25 @@
         </button>
       </div>
     </div>
+
+    <ChatHistoryModal
+      v-model:isOpen="showHistoryModal"
+      :conversations="chatStore.conversations"
+      :active-id="chatStore.activeConversationId"
+      @select="loadConversation"
+      @delete="deleteConversation"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue'
-import axios from 'axios'
 import io from 'socket.io-client'
 import { marked } from 'marked'
+import { useChatStore } from '../store'
+import ChatHistoryModal from './ChatHistoryModal.vue'
 
+const chatStore = useChatStore()
 const messages = ref([])
 const prompt = ref('')
 const selectedProvider = ref('')
@@ -84,6 +116,7 @@ const providers = ref([])
 const availableModels = ref([])
 const loading = ref(false)
 const chatContainer = ref(null)
+const showHistoryModal = ref(false)
 
 const socket = io()
 socket.on('status_update', (data) => {
@@ -118,6 +151,60 @@ watch(selectedProvider, () => {
     updateModels()
 })
 
+const scrollToBottom = () => {
+  if (chatContainer.value) {
+    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+  }
+}
+
+const persistChat = () => {
+  if (loading.value || !messages.value.length) return
+  chatStore.saveConversation(messages.value, selectedProvider.value, selectedModel.value)
+}
+
+const restoreActiveChat = () => {
+  const conv = chatStore.activeConversation
+  if (!conv) return
+  messages.value = JSON.parse(JSON.stringify(conv.messages))
+  selectedProvider.value = conv.providerId || ''
+  selectedModel.value = conv.model || ''
+  updateModels()
+  nextTick(scrollToBottom)
+}
+
+const startNewChat = () => {
+  if (messages.value.length && !loading.value) {
+    persistChat()
+  }
+  chatStore.clearActive()
+  messages.value = []
+  prompt.value = ''
+}
+
+const loadConversation = (id) => {
+  const conv = chatStore.loadConversation(id)
+  if (!conv) return
+  messages.value = JSON.parse(JSON.stringify(conv.messages))
+  selectedProvider.value = conv.providerId || ''
+  selectedModel.value = conv.model || ''
+  updateModels()
+  showHistoryModal.value = false
+  nextTick(scrollToBottom)
+}
+
+const deleteConversation = (id) => {
+  const wasActive = chatStore.activeConversationId === id
+  chatStore.deleteConversation(id)
+  if (wasActive) {
+    messages.value = []
+    prompt.value = ''
+  }
+}
+
+onMounted(() => {
+  restoreActiveChat()
+})
+
 const renderMarkdown = (content) => {
   return marked.parse(content || '', { breaks: true, gfm: true })
 }
@@ -126,7 +213,6 @@ const send = async () => {
   if (!prompt.value || loading.value) return
   
   const userPrompt = prompt.value
-  // Take history BEFORE adding the current prompt to avoid duplication
   const history = messages.value.map(m => ({ 
     role: m.role, 
     content: m.content 
@@ -209,11 +295,7 @@ const send = async () => {
               messages.value[msgIndex].content = 'Error: ' + data.error;
             }
             
-            nextTick(() => {
-              if (chatContainer.value) {
-                chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-              }
-            });
+            nextTick(scrollToBottom);
           } catch (e) {
             console.error('Error parsing SSE data:', e, dataStr);
           }
@@ -229,11 +311,8 @@ const send = async () => {
     }
   } finally {
     loading.value = false
-    nextTick(() => {
-      if (chatContainer.value) {
-        chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-      }
-    })
+    persistChat()
+    nextTick(scrollToBottom)
   }
 }
 </script>
