@@ -10,20 +10,6 @@ export default {
         password: process.env.ADMIN_PASSWORD || 'admin'
     },
     providers: {
-        zai_org: {
-            name: "Z.ai",
-            key: process.env.ZAI_API_KEY,
-            
-            models: [
-                'glm-4.5-Flash',
-                'glm-4.7-Flash',
-            ],
-            rpm: 20,
-            daily_limit: 1000,
-            daily_token_limit: 1000000,
-            priority: 1,
-            endpoint: 'https://api.z.ai/api/paas/v4/chat/completions'
-        },
         groq: {
             name: 'Groq',
             key: process.env.GROQ_API_KEY,
@@ -37,8 +23,22 @@ export default {
             rpm: 30,
             daily_limit: 14400,
             daily_token_limit: 1440000,
-            priority: 2,
+            priority: 1,
             endpoint: 'https://api.groq.com/openai/v1/chat/completions'
+        },
+        zai_org: {
+            name: "Z.ai",
+            key: process.env.ZAI_API_KEY,
+            
+            models: [
+                'glm-4.5-Flash',
+                'glm-4.7-Flash',
+            ],
+            rpm: 20,
+            daily_limit: 1000,
+            daily_token_limit: 1000000,
+            priority: 2,
+            endpoint: 'https://api.z.ai/api/paas/v4/chat/completions'
         },
         nvidia_nim: {
             name: 'Nvidia NIM',
@@ -166,6 +166,8 @@ export default {
             key: process.env.CLOUDFLARE_TOKEN,
             accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
             models: [
+                "@cf/zai-org/glm-4.7-flash",
+                "@cf/nvidia/nemotron-3-120b-a12b",
                 "@cf/meta/llama-4-scout-17b-16e-instruct",
                 "@cf/moonshotai/kimi-k2.6",
                 "@cf/moonshotai/kimi-k2.7-code",
