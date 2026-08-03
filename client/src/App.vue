@@ -58,6 +58,7 @@ const navItems = [
   { name: 'Chat', path: '/chat' },
   { name: 'Compare', path: '/compare' },
   { name: 'Images', path: '/images' },
+  { name: 'Speech', path: '/speech' },
   { name: 'Usage', path: '/usage' },
   { name: 'Quota', path: '/quota' },
   { name: 'API', path: '/test-api' },

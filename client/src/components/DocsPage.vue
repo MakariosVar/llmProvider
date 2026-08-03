@@ -217,6 +217,67 @@ event: data
           </div>
         </section>
 
+        <!-- ═══ SPEECH-TO-TEXT ═══ -->
+        <section id="speech-gen" class="scroll-mt-24">
+          <div class="flex items-start gap-4">
+            <div class="w-1 h-10 shrink-0 mt-0.5 rounded-full bg-sky-500"></div>
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-1">
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center bg-sky-500/20 border border-sky-500/30">
+                  <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                </span>
+                <h2 class="text-xl font-bold text-white">Speech-to-Text</h2>
+              </div>
+              <p class="text-slate-400 text-sm mt-0.5 ml-11">Transcribe audio via Groq Whisper. Multipart upload with optional language &amp; model selection.</p>
+            </div>
+          </div>
+          <div class="mt-5 space-y-4">
+            <div class="p-5 bg-slate-900/40 border border-slate-800 rounded-2xl hover:border-slate-700 transition-all">
+              <div class="flex items-center gap-2.5 mb-2">
+                <span class="px-2 py-0.5 rounded text-xs font-bold text-white bg-sky-500">POST</span>
+                <code class="text-indigo-300 font-mono font-bold text-sm">/api/ai/transcribe</code>
+              </div>
+              <p class="text-slate-500 text-sm mb-3">Speech-to-text via Groq Whisper. Returns transcript + metadata. Multipart form data.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <details class="group">
+                  <summary class="text-slate-400 font-bold cursor-pointer hover:text-slate-200 list-none flex items-center gap-1.5 text-xs">
+                    <span class="transition-transform group-open:rotate-90">&#9654;</span> Multipart Fields
+                  </summary>
+                  <pre class="text-slate-500 font-mono mt-1.5 p-2.5 bg-slate-950 rounded-lg border border-slate-800/50 text-xs overflow-x-auto">file     (required) - audio: mp3, wav, m4a,
+                     ogg, webm, flac, mp4. Max 100MB.
+model    (optional) - whisper-large-v3-turbo,
+                     whisper-large-v3.
+                     Default: whisper-large-v3-turbo.
+language (optional) - ISO-639-1, e.g. "el", "en".
+                     Auto-detect if omitted.</pre>
+                </details>
+                <details class="group">
+                  <summary class="text-slate-400 font-bold cursor-pointer hover:text-slate-200 list-none flex items-center gap-1.5 text-xs">
+                    <span class="transition-transform group-open:rotate-90">&#9654;</span> Response <span class="text-emerald-400">200</span>
+                  </summary>
+                  <pre class="text-emerald-500 font-mono mt-1.5 p-2.5 bg-slate-950 rounded-lg border border-slate-800/50 text-xs">{
+  "provider": "Groq",
+  "model": "whisper-large-v3-turbo",
+  "text": "Hello, this is a test.",
+  "language": "el",
+  "duration": 12.5,
+  "responseTime": 588
+}</pre>
+                </details>
+                <details class="group sm:col-span-2">
+                  <summary class="text-slate-400 font-bold cursor-pointer hover:text-slate-200 list-none flex items-center gap-1.5 text-xs">
+                    <span class="transition-transform group-open:rotate-90">&#9654;</span> cURL Example
+                  </summary>
+                  <pre class="text-slate-500 font-mono mt-1.5 p-2.5 bg-slate-950 rounded-lg border border-slate-800/50 text-xs leading-relaxed">curl -X POST http://&lt;host&gt;:3000/api/ai/transcribe \
+  -F "file=@speech.wav" \
+  -F "model=whisper-large-v3" \
+  -F "language=el"</pre>
+                </details>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- ═══ STATUS & MONITORING ═══ -->
         <section id="monitoring" class="scroll-mt-24">
           <div class="flex items-start gap-4">
@@ -297,7 +358,7 @@ event: data
                 </span>
                 <h2 class="text-xl font-bold text-white">Request Parameters</h2>
               </div>
-              <p class="text-slate-400 text-sm mt-0.5 ml-11">Accepted by <code class="text-indigo-300">POST /api/ai</code>, <code class="text-indigo-300">POST /api/ai/stream</code>, and <code class="text-purple-300">POST /v1/chat/completions</code>.</p>
+              <p class="text-slate-400 text-sm mt-0.5 ml-11">Accepted by <code class="text-indigo-300">POST /api/ai</code>, <code class="text-indigo-300">POST /api/ai/stream</code>, and <code class="text-purple-300">POST /v1/chat/completions</code>. Speech-to-text uses its own multipart fields — see the Speech-to-Text section.</p>
             </div>
           </div>
           <div class="overflow-x-auto mt-5 rounded-2xl border border-slate-800">
@@ -502,6 +563,7 @@ const params = [
 
 const errorCodes = [
   { code: '400', desc: 'Invalid or missing <code class="text-indigo-300">prompt</code>' },
+  { code: '413', desc: 'Audio file too large (max 100MB)' },
   { code: '429', desc: 'Rate limited — failover auto-triggers' },
   { code: '500', desc: 'All providers exhausted' },
   { code: '502', desc: 'Upstream provider error' },

@@ -2,6 +2,7 @@ import { countTokens } from './utils/tokenCounter.js';
 import axios from 'axios';
 import http from 'http';
 import https from 'https';
+import FormData from 'form-data';
 import providerManager from './providerManager.js';
 import statusPersistence from './statusPersistence.js';
 import winston from 'winston';
@@ -146,6 +147,118 @@ class Orchestrator {
             }
         }
         throw new AllProvidersFailedError(allErrors);
+    }
+
+    async transcribe(params) {
+        const { audio, filename, mimetype, model, language } = params;
+
+        if (!audio || !Buffer.isBuffer(audio)) {
+            throw new Error('Audio data is required');
+        }
+        if (Buffer.byteLength(audio) === 0) {
+            throw new Error('Audio file is empty');
+        }
+        if (Buffer.byteLength(audio) > 100 * 1024 * 1024) {
+            throw new Error('Audio file too large (max 100MB)');
+        }
+
+        const provider = providerManager.getProvider('groq');
+        if (!provider || !provider.key) {
+            throw new Error('Groq provider not configured (GROQ_API_KEY missing)');
+        }
+        if (!provider.audioModels || provider.audioModels.length === 0) {
+            throw new Error('Groq provider has no audio models configured');
+        }
+
+        const selectedModel = model || provider.audioModels[0];
+
+        if (!circuitBreaker.canAttempt(provider.id)) {
+            throw new Error(`Circuit breaker OPEN for ${provider.name} (transcribe)`);
+        }
+
+        const formData = new FormData();
+        formData.append('file', audio, filename || 'audio.mp3');
+        formData.append('model', selectedModel);
+        if (language) formData.append('language', language);
+
+        const startTime = Date.now();
+        try {
+            const response = await axiosInstance.post(provider.audioEndpoint, formData, {
+                headers: {
+                    'Authorization': `Bearer ${provider.key}`,
+                    ...formData.getHeaders()
+                }
+            });
+
+            const responseTime = Date.now() - startTime;
+            providerManager.updateLiveRateLimits(provider.id, selectedModel, response.headers);
+
+            const result = response.data || {};
+            const text = result.text || '';
+            const outputTokens = countTokens(text);
+
+            providerManager.incrementUsage(provider.id);
+            providerManager.updateStatus(provider.id, 'online');
+            providerManager.clearRateLimit(provider.id, selectedModel);
+            circuitBreaker.recordSuccess(provider.id);
+
+            statusPersistence.logRequest({
+                providerId: provider.id,
+                modelName: selectedModel,
+                status: 'success',
+                latency: responseTime,
+                inputTokens: 0,
+                outputTokens: outputTokens,
+                type: 'audio'
+            });
+
+            return {
+                provider: provider.name,
+                model: selectedModel,
+                text: text,
+                language: result.language || null,
+                duration: result.duration || null,
+                responseTime: responseTime
+            };
+        } catch (error) {
+            const responseTime = Date.now() - startTime;
+            statusPersistence.logRequest({
+                providerId: provider.id,
+                modelName: selectedModel,
+                status: 'error',
+                latency: responseTime,
+                inputTokens: 0,
+                outputTokens: 0,
+                type: 'audio',
+                errorMessage: error.message
+            });
+
+            const isRateLimit = error.response?.status === 429 ||
+                error.message?.toLowerCase().includes('rate limit');
+            const isTooLarge = error.response?.status === 413;
+            const isTransientError = error.code === 'ECONNREFUSED' ||
+                error.code === 'ETIMEDOUT' ||
+                error.code === 'ENOTFOUND' ||
+                (error.response?.status >= 500 && error.response?.status < 600);
+
+            if (isRateLimit) {
+                if (error.response?.headers) {
+                    providerManager.updateLiveRateLimits(provider.id, selectedModel, error.response.headers);
+                }
+                providerManager.markRateLimited(provider.id, selectedModel);
+                throw new Error(`Rate limited (429): ${error.response?.data?.error?.message || 'try again later'}`);
+            } else if (isTooLarge) {
+                throw new Error('Audio file too large (max 100MB for Groq)');
+            } else if (isTransientError) {
+                circuitBreaker.recordFailure(provider.id);
+                throw new Error(`Transient error: ${error.message}`);
+            } else {
+                const apiMsg = error.response?.data?.error?.message || error.message;
+                providerManager.updateModelStatus(provider.id, selectedModel, 'error', apiMsg);
+                circuitBreaker.recordFailure(provider.id);
+                throw new Error(`Transcription failed: ${apiMsg}`);
+            }
+        }
     }
 
     async generate(params) {

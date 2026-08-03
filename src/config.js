@@ -24,7 +24,9 @@ export default {
             daily_limit: 14400,
             daily_token_limit: 1440000,
             priority: 1,
-            endpoint: 'https://api.groq.com/openai/v1/chat/completions'
+            endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+            audioModels: ['whisper-large-v3-turbo', 'whisper-large-v3'],
+            audioEndpoint: 'https://api.groq.com/openai/v1/audio/transcriptions'
         },
         zai_org: {
             name: "Z.ai",

@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import multer from 'multer';
 import config from './src/config.js';
 import orchestrator from './src/orchestrator.js';
 import healthChecker from './src/healthChecker.js';
@@ -39,6 +40,12 @@ const io = new Server(httpServer, {
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' })); // Add request size limit
+
+// Multer config for audio file uploads (speech-to-text)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 100 * 1024 * 1024 } // 100MB max (Groq dev tier limit)
+});
 
 // Helper to log to console and socket
 const log = (msg) => {
@@ -144,6 +151,44 @@ app.post('/api/ai', validateGenerateParams, async (req, res) => {
         log(`Request failed: ${error.message}`);
         res.status(500).json({ error: error.message });
     }
+});
+
+// Speech-to-text (audio transcription via Groq Whisper)
+app.post('/api/ai/transcribe', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Missing audio file (field "file")' });
+        }
+
+        const { model, language } = req.body;
+        const result = await orchestrator.transcribe({
+            audio: req.file.buffer,
+            filename: req.file.originalname,
+            mimetype: req.file.mimetype,
+            model: model || undefined,
+            language: language || undefined
+        });
+
+        res.json(result);
+        log(`Audio transcribed by ${result.provider} (${result.model})`);
+        io.emit('status_update', providerManager.getAllProviders());
+        io.emit('usage_update');
+    } catch (error) {
+        log(`Transcription failed: ${error.message}`);
+        const status = /rate limit|429/i.test(error.message) ? 429 : (/too large/i.test(error.message) ? 413 : 500);
+        res.status(status).json({ error: error.message });
+    }
+});
+
+// Multer error handler (file too large, unexpected field, etc.)
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ error: 'Audio file too large (max 100MB)' });
+        }
+        return res.status(400).json({ error: `Upload error: ${err.message}` });
+    }
+    next(err);
 });
 
 // Streaming endpoint (SSE-like over POST chunked response)

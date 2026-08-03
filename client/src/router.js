@@ -4,6 +4,7 @@ import Status from './components/Status.vue'
 import Chat from './components/Chat.vue'
 import Compare from './components/Compare.vue'
 import Images from './components/Images.vue'
+import Speech from './components/Speech.vue'
 import TestAPI from './components/TestAPI.vue'
 import DocsPage from './components/DocsPage.vue'
 import Usage from './components/Usage.vue'
@@ -19,6 +20,7 @@ const routes = [
   { path: '/chat', component: Chat, meta: { requiresAuth: true } },
   { path: '/compare', component: Compare, meta: { requiresAuth: true } },
   { path: '/images', component: Images, meta: { requiresAuth: true } },
+  { path: '/speech', component: Speech, meta: { requiresAuth: true } },
   { path: '/test-api', component: TestAPI, meta: { requiresAuth: true } },
   { path: '/docs', component: DocsPage, meta: { requiresAuth: true } },
   { path: '/usage', component: Usage, meta: { requiresAuth: true } },
