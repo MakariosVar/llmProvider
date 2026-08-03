@@ -18,7 +18,7 @@ export default {
                 'openai/gpt-oss-120b',
                 'qwen/qwen3.6-27b',
                 'openai/gpt-oss-20b',
-                'llama-3.1-8b-instant',       
+                'llama-3.1-8b-instant',
             ],
             rpm: 30,
             daily_limit: 14400,
@@ -29,10 +29,9 @@ export default {
         zai_org: {
             name: "Z.ai",
             key: process.env.ZAI_API_KEY,
-            
             models: [
                 'glm-4.5-Flash',
-                'glm-4.7-Flash',
+                // 'glm-4.7-Flash',
             ],
             rpm: 20,
             daily_limit: 1000,
@@ -44,7 +43,6 @@ export default {
             name: 'Nvidia NIM',
             key: process.env.NVIDIA_API_KEY,
             models: [
-                'minimaxai/minimax-m3',
                 'nvidia/nemotron-3-super-120b-a12b',
                 'nvidia/nemotron-3-ultra-550b-a55b',
             ],
@@ -105,13 +103,12 @@ export default {
             models: [
                 'Mistral-Nemo-Instruct-2407',
                 'Mistral-Small-3.2-24B-Instruct-2506',
-                'Qwen3.5-9B',
             ],
             rpm: 2,
             daily_limit: 1000,
             daily_token_limit: 1000000,
             priority: 5.5,
-            endpoint: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions'  
+            endpoint: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions'
         },
         google_gemini: {
             name: 'Google Gemini',
