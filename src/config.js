@@ -138,7 +138,7 @@ export default {
             key: process.env.HF_API_KEY,
             models: [
                 'deepseek-ai/DeepSeek-V4-Flash',
-                'Qwen/Qwen2.5-7B-Instruct',
+                'Qwen/Qwen2.5-72B-Instruct',
             ],
             rpm: 5,
             daily_limit: 100,
@@ -176,8 +176,7 @@ export default {
                 "@cf/zai-org/glm-4.7-flash",
                 "@cf/nvidia/nemotron-3-120b-a12b",
                 "@cf/meta/llama-4-scout-17b-16e-instruct",
-                "@cf/moonshotai/kimi-k2.6",
-                "@cf/moonshotai/kimi-k2.7-code",
+                "@cf/meta/llama-3.1-8b-instruct",
                 "@cf/google/gemma-4-26b-a4b-it",
             ],
             rpm: 30,
