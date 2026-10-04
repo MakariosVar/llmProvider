@@ -112,8 +112,7 @@ export default {
             name: 'OVHcloud',
             key: '',
             models: [
-                'Mistral-Nemo-Instruct-2407',
-                'Mistral-Small-3.2-24B-Instruct-2506',
+                'Meta-Llama-3_3-70B-Instruct',
             ],
             rpm: 2,
             daily_limit: 1000,
