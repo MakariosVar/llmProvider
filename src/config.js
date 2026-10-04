@@ -15,7 +15,7 @@ export default {
             key: process.env.GROQ_API_KEY,
             models: [
                 'openai/gpt-oss-120b',
-                'qwen/qwen3.6-27b',
+                'qwen/qwen3.8-27b',
                 'openai/gpt-oss-20b',
             ],
             rpm: 30,
@@ -62,23 +62,24 @@ export default {
             priority: 3,
             endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions'
         },
-        cerebras: {
-            name: 'Cerebras',
-            key: process.env.CEREBRAS_API_KEY,
-            models: [
-                'gpt-oss-120b',
-                'zai-glm-4.7',
-            ],
-            rpm: 5,
-            daily_limit: 1000,
-            daily_token_limit: 1000000,
-            priority: 3.5,
-            endpoint: 'https://api.cerebras.ai/v1/chat/completions'
-        },
+        // cerebras: {
+        //     name: 'Cerebras',
+        //     key: process.env.CEREBRAS_API_KEY,
+        //     models: [
+        //         'gpt-oss-120b',
+        //         'qwen-3.8-27b',
+        //         'llama-3.3-70b'
+        //     ],
+        //     rpm: 5,
+        //     daily_limit: 1000,
+        //     daily_token_limit: 1000000,
+        //     priority: 3.5,
+        //     endpoint: 'https://api.cerebras.ai/v1/chat/completions'
+        // },
         mistral_ai: {
             name: 'Mistral AI',
             key: process.env.MISTRAL_API_KEY || null,
-            models: ['mistral-small-latest', 'open-mistral-nemo'],
+            models: ['open-mistral-7b', 'open-mistral-nemo'],
             rpm: 2,
             daily_limit: 33000000,
             daily_token_limit: 33000000,
