@@ -14,11 +14,9 @@ export default {
             name: 'Groq',
             key: process.env.GROQ_API_KEY,
             models: [
-                'llama-3.3-70b-versatile',
                 'openai/gpt-oss-120b',
                 'qwen/qwen3.6-27b',
                 'openai/gpt-oss-20b',
-                'llama-3.1-8b-instant',
             ],
             rpm: 30,
             daily_limit: 14400,
@@ -27,6 +25,16 @@ export default {
             endpoint: 'https://api.groq.com/openai/v1/chat/completions',
             audioModels: ['whisper-large-v3-turbo', 'whisper-large-v3'],
             audioEndpoint: 'https://api.groq.com/openai/v1/audio/transcriptions'
+        },
+        kilocode: {
+            name: 'Kilocode',
+            key: process.env.KILOCODE_API_KEY || null,
+            models: ['kilo-auto/free'],
+            rpm: 60,
+            daily_limit: 33000000,
+            daily_token_limit: 33000000,
+            priority: 1.5,
+            endpoint: 'https://api.kilo.ai/api/gateway/chat/completions'
         },
         zai_org: {
             name: "Z.ai",
