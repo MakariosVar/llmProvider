@@ -196,9 +196,9 @@ export default {
             name: 'Novita AI',
             key: process.env.NOVITA_API_KEY,
             models: [
-                'mistralai/mistral-nemo',
-                'openai/gpt-oss-20b',
                 'meta-llama/llama-3.1-8b-instruct',
+                'meta-llama/llama-3.3-70b-instruct',
+                'deepseek/deepseek-r1'
             ],
             rpm: 0,
             daily_limit: 0,
