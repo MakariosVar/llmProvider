@@ -133,19 +133,22 @@ export default {
             priority: 6,
             endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
         },
-        huggingface: {
-            name: 'HuggingFace',
-            key: process.env.HF_API_KEY,
-            models: [
-                'deepseek-ai/DeepSeek-V4-Flash',
-                'Qwen/Qwen2.5-72B-Instruct',
-            ],
-            rpm: 5,
-            daily_limit: 100,
-            daily_token_limit: 100000,
-            priority: 7,
-            endpoint: 'https://router.huggingface.co/v1/chat/completions'
-        },
+        // Set to deprecated as HF has no free tier API anymore (14 oct 2026)
+        // huggingface: {
+        //     name: 'HuggingFace',
+        //     key: process.env.HF_API_KEY,
+        //     models: [
+        //         'Qwen/Qwen2.5-72B-Instruct',
+        //         'Qwen/Qwen2.5-Coder-32B-Instruct',
+        //         'meta-llama/Llama-3.3-70B-Instruct',
+        //         'google/gemma-2-2b-it'
+        //     ],
+        //     rpm: 5,
+        //     daily_limit: 100,
+        //     daily_token_limit: 100000,
+        //     priority: 7,
+        //     endpoint: 'https://router.huggingface.co/v1/chat/completions'
+        // },
         cohere: {
             name: 'Cohere',
             key: process.env.COHERE_API_KEY,
