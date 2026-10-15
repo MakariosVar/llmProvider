@@ -33,6 +33,7 @@ who can actually serve the request right now.
 **Routing**
 
 - **Priority-based selection** — providers are tried in a configurable order; each one's models are tried in order too.
+- **Two-tier auto-selection** — send `"model": null` and the orchestrator picks *both* the provider and the model, retrying across every healthy combination until one answers.
 - **Automatic failover** — a failed model falls through to the next model, then the next provider, within the same request.
 - **Circuit breaker** — a provider that keeps failing is pulled out of rotation for 60s, then probed again before being trusted.
 - **Rate-limit awareness** — `429`s are cached for 5 minutes instead of being retried, and quota is read live from provider response headers where available.
@@ -82,10 +83,12 @@ You need **at least one** provider key — or a running [Ollama](https://ollama.
 curl http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "openai/gpt-oss-120b",
+    "model": null,
     "messages": [{"role": "user", "content": "Why is the sky blue?"}]
   }'
 ```
+
+`"model": null` is the recommended default — it hands the decision to the orchestrator, which picks the provider *and* the model for you. See [Let the orchestrator choose](#let-the-orchestrator-choose).
 
 Swap the URL for any OpenAI client — Open WebUI, Continue, Aider, LangChain, your own code:
 
@@ -94,7 +97,7 @@ from openai import OpenAI
 
 client = OpenAI(base_url="http://localhost:3000/v1", api_key="unused")
 client.chat.completions.create(
-    model="openai/gpt-oss-120b",
+    model=None,  # or omit entirely — let the orchestrator choose
     messages=[{"role": "user", "content": "Hello"}],
 )
 ```
@@ -144,9 +147,11 @@ Base URL: `http://localhost:3000`
 
 Accepts a standard OpenAI chat completion request and returns a standard OpenAI response — including SSE streaming that terminates with `data: [DONE]`.
 
+`model` is **nullable** and that is the recommended default:
+
 ```json
 {
-  "model": "openai/gpt-oss-120b",
+  "model": null,
   "messages": [
     { "role": "system", "content": "You are a helpful assistant." },
     { "role": "user", "content": "What is the capital of France?" }
@@ -156,6 +161,8 @@ Accepts a standard OpenAI chat completion request and returns a standard OpenAI 
   "stream": false
 }
 ```
+
+The response echoes back whichever provider and model actually served it:
 
 ```json
 {
@@ -172,7 +179,26 @@ Accepts a standard OpenAI chat completion request and returns a standard OpenAI 
 }
 ```
 
-Leave `model` unset to let the orchestrator choose. Setting it restricts routing to providers that actually serve that model.
+### Let the orchestrator choose
+
+`model` accepts `null`, and leaving it `null` is a feature in itself — the orchestrator then runs **two-tier auto-selection**: it chooses not only *which provider* handles the request, but *which model inside that provider*.
+
+**`model: null` (or omitted) — full auto-selection**
+
+Nothing gets pinned. Every provider is a candidate, and within each one every model is a candidate, tried in the order defined by `priority` in `src/config.js` and the array order of `models`. If the top-priority provider's best model is rate-limited, the orchestrator falls through to its next model, then to the next provider, and so on — all inside the same request.
+
+**`model: "openai/gpt-oss-120b"` — pin the model**
+
+The model is pinned, but the provider is still negotiated. Only providers that actually serve that model become candidates, and the orchestrator still fails over between them if one is down or throttled. You are choosing *what* answers, not *who*.
+
+| `model` value | Provider selection | Model selection |
+|---|---|---|
+| `null` / omitted | Auto | Auto |
+| `"groq/openai/gpt-oss-120b"` | Auto (only providers serving it) | Pinned |
+
+If you pass a model that nothing in your configuration serves, the request fails fast with `No available provider supports model: <name>` — it does not silently fall back to a different model.
+
+> Some clients refuse to send an empty `model` and throw client-side, or send a placeholder string like `"auto"` or `"default"`. Those will be treated as literal model names and will fail. Either send `null` or map them to `null` on your side.
 
 > There is no `/v1/models` endpoint. Use `GET /api/status` to see what's configured and healthy.
 
@@ -203,15 +229,22 @@ The server emits `status_update` and `usage_update` on connect, after every requ
 
 ## How routing works
 
+Selection happens on two axes. Whether the second one applies depends on `model`:
+
+- **`model: null`** → providers *and* models are both auto-selected.
+- **`model: "..."`** → the model is pinned; only the provider is negotiated.
+
 For each request the orchestrator walks providers in ascending `priority`:
 
 1. Skip the provider if its circuit breaker is open, or if the model is currently rate-limited.
-2. Try **each model of that provider** in order.
+2. Try **each model of that provider** in the order listed in `src/config.js`. With `model: null` this is a genuine search — a throttled first model falls through to the second, and so on.
 3. On success — record usage, clear the rate-limit cache, and tell the circuit breaker.
 4. On `429` — cache the model as throttled for 5 minutes and move on *without* counting it as a failure.
 5. On a transient error (timeout, 5xx, connection refused) — log it, count it toward the breaker, but don't mark the model broken.
 6. On a permanent error (auth, bad request) — mark the model failed for 5 minutes and count it toward the breaker.
 7. If everything is exhausted, return `AllProvidersFailedError` with the full list of per-provider errors.
+
+So a single request with `model: null` can walk several models on several providers before it gets an answer, and every step it skipped is skipped again on the next request — throttled models stay throttled, failed models stay failed, until their cooldown expires.
 
 Circuit breaker: opens after **5 failures**, stays open for **60 seconds**, then allows **3** half-open probes before closing again. State is in-memory and resets on restart; the SQLite-backed rate-limit cache does not.
 
