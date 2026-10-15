@@ -33,8 +33,19 @@
     "orchestrator",
     "free-tier"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "MakariosVar",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MakariosVar/llmProvider.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MakariosVar/llmProvider/issues"
+  },
+  "homepage": "https://github.com/MakariosVar/llmProvider#readme",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "axios": "^1.6.0",
     "better-sqlite3": "^12.11.1",
