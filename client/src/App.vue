@@ -23,7 +23,25 @@
               {{ item.name }}
             </router-link>
           </div>
-          
+          <a
+            href="https://github.com/makariosvar/llmProvider"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View source on GitHub"
+            class="p-2 border-2 border-[var(--border-color)] rounded-full bg-[var(--bg-color)] text-[var(--text-color)] transition-colors hover:bg-[var(--accent-bg)] hover:text-[var(--accent-text)]"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 .297a12 12 0 0 0-3.794 23.383c.6.111.82-.26.82-.577v-2.234c-3.338.726-4.043-1.416-4.043-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.835 2.807 1.305 3.492.998.108-.776.418-1.305.762-1.605-2.665-.304-5.466-1.332-5.466-5.93 0-1.31.468-2.381 1.236-3.221-.124-.303-.536-1.524.117-3.176 0 0 1.008-.323 3.3 1.23a11.5 11.5 0 0 1 6.006 0c2.29-1.553 3.297-1.23 3.297-1.23.655 1.652.243 2.873.12 3.176.77.84 1.233 1.911 1.233 3.221 0 4.61-2.805 5.622-5.476 5.921.43.372.814 1.103.814 2.222v3.293c0 .32.216.694.825.576A12 12 0 0 0 12 .297Z"
+              />
+            </svg>
+          </a>
           <ThemeToggle />
           <button @click="logout" class="text-[var(--text-color)] hover:text-rose-400 transition-colors text-sm font-medium hidden sm:block">Logout</button>
         </div>
